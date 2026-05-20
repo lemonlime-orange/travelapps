@@ -1,59 +1,122 @@
 """
-app.py
-🇰🇷 Korea Travel Apps Guide — 메인 진입점
-
-실행 방법:
-    streamlit run app.py
+app.py  ─  🏠 Main Page
+실행: streamlit run app.py
 """
 
 import streamlit as st
-import sys
-import os
+from components.data_loader import (
+    load_apps, filter_by_category, load_favorites, get_apps_by_ids, get_top_rated_app,
+)
+from components.app_card import render_app_card
 
-# components 폴더를 import 경로에 추가
-sys.path.append(os.path.join(os.path.dirname(__file__), "components"))
-
-from data_loader import load_apps, get_categories, filter_by_category, search_apps
-from app_card import render_app_card
-from sidebar import render_sidebar
-
-# ── 페이지 기본 설정 ──────────────────────────────────────────
 st.set_page_config(
     page_title="Korea Travel Apps",
     page_icon="🇰🇷",
     layout="wide",
 )
 
-# ── 데이터 로드 ───────────────────────────────────────────────
-df = load_apps()
-categories = get_categories(df)
+# ── 헤더 ─────────────────────────────────────────────────────
+col_flag, col_title = st.columns([1, 6])
+with col_flag:
+    st.markdown("<div style='font-size:5rem; text-align:center'>🇰🇷</div>", unsafe_allow_html=True)
+with col_title:
+    st.title("Korea Travel App Guide")
+    st.markdown("**Your digital companion for South Korea** — curated apps that locals actually use.")
 
-# ── 사이드바 렌더링 & 필터 값 가져오기 ────────────────────────
-filters = render_sidebar(categories)
-
-# ── 필터 적용 ─────────────────────────────────────────────────
-filtered_df = filter_by_category(df, filters["category"])
-filtered_df = search_apps(filtered_df, filters["search"])
-
-# ── 메인 헤더 ─────────────────────────────────────────────────
-st.title("🇰🇷 Essential Apps for Traveling in South Korea")
-st.markdown(
-    "Discover the best apps locals use every day — "
-    "from navigation and food delivery to translation and transport."
-)
 st.divider()
 
-# ── 결과 요약 ─────────────────────────────────────────────────
-col_info, col_spacer = st.columns([3, 1])
-with col_info:
-    total = len(filtered_df)
-    label = filters["category"] if filters["category"] != "All" else "all categories"
-    st.caption(f"Showing **{total} app{'s' if total != 1 else ''}** in {label}")
+# ── 빠른 팁 (접이식) ──────────────────────────────────────────
+with st.expander("⚡ Before You Land in Korea", expanded=False):
+    tips = [
+        ("📶", "Get a SIM or pocket Wi-Fi at Incheon Airport — essential for all apps below."),
+        ("💳", "Load a **T-money card** for seamless subway & bus travel across the country."),
+        ("📥", "Download **Papago** and **Naver Maps** offline before leaving your hotel."),
+        ("🚕", "Install **Kakao T** before your first night — finding taxis gets much easier."),
+    ]
+    for emoji, tip in tips:
+        st.markdown(f"{emoji} {tip}")
 
-# ── 앱 카드 목록 ──────────────────────────────────────────────
-if filtered_df.empty:
-    st.warning("😕 No apps found. Try a different search or category.")
-else:
-    for _, row in filtered_df.iterrows():
-        render_app_card(row.to_dict())
-        st.write("")  # 카드 사이 여백
+st.divider()
+
+# ── 소개 카드 그리드 ──────────────────────────────────────────
+st.subheader("📌 Navigate by Topic")
+
+pages = [
+    ("📱", "Essential Apps",   "All must-have apps in one place"),
+    ("🗺️", "Navigation",       "Maps, routes and local directions"),
+    ("🚇", "Transportation",   "Subway, taxi, KTX & more"),
+    ("🍜", "Food",             "Delivery, restaurants & dining"),
+    ("🗣", "Translation",      "Break the language barrier"),
+    ("🧳", "Etc.",             "Other useful travel utilities"),
+    ("⭐", "Favorites",        "Your saved apps"),
+    ("🎯", "Situation Helper", "Tell us your situation → get the right app"),
+]
+
+
+# 페이지 상태 초기화
+if "page" not in st.session_state:
+    st.session_state.page = "home"
+
+cols = st.columns(4)
+for i, (icon, name, desc) in enumerate(pages):
+    with cols[i % 4]:
+        with st.container(border=True):
+            st.markdown(f"### {icon} {name}")
+            st.caption(desc)
+            if st.button("Open", key=f"open_{i}"):
+                st.session_state.page = name
+                st.rerun()
+
+st.divider()
+st.caption("Data stored in `data/apps.csv` · Built with Streamlit 🎈")
+
+# ── 관리자 접근 (페이지 하단) ──────────────────────────────────
+with st.expander("Administrator Controls", expanded=False):
+    st.markdown("Only authorized users should use these controls.")
+    col_a, col_b = st.columns([1, 3])
+    with col_a:
+        if st.button("Open Admin Panel"):
+            st.session_state.page = "admin"
+            st.rerun()
+    with col_b:
+        st.markdown("Tip: you can also run the admin page separately with `streamlit run 9_🔧_Admin.py`.")
+
+# 관리 패널 임베드 렌더링
+if st.session_state.page == "admin":
+    from components.admin_ui import render_admin_panel
+    render_admin_panel()
+
+# 상세 페이지 렌더링
+if st.session_state.page != "home":
+    sel = st.session_state.page
+    # 상단 네비게이션
+    col1, col2 = st.columns([9, 1])
+    with col1:
+        st.header(f"{sel}")
+    with col2:
+        if st.button("← Back"):
+            st.session_state.page = "home"
+            st.rerun()
+
+    df = load_apps()
+    
+    # 최고 별점 앱 표시 (Favorites, Situation Helper 제외)
+    if sel != "Favorites" and sel != "Situation Helper":
+        top_app = get_top_rated_app(df, sel)
+        if top_app:
+            st.subheader("🌟 Top Rated App")
+            render_app_card(top_app, show_favorite=True)
+            st.divider()
+    
+    if sel == "Favorites":
+        fav_ids = load_favorites()
+        view_df = get_apps_by_ids(df, fav_ids)
+    else:
+        view_df = filter_by_category(df, sel)
+
+    if view_df.empty:
+        st.info("No apps found for this category.")
+    else:
+        st.subheader("All Apps in This Category")
+        for _, row in view_df.iterrows():
+            render_app_card(row.to_dict())
