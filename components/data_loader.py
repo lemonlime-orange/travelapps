@@ -145,9 +145,31 @@ def save_situations(df: pd.DataFrame):
     df.to_csv(_path("situations.csv"), index=False)
 
 def get_situation_categories() -> list:
-    """모든 상황 카테고리를 반환합니다."""
+    """모든 상황 카테고리를 반환합니다. 기본 카테고리를 보장합니다."""
     df = load_situations()
-    categories = sorted(df["category"].unique().tolist())
+    found = []
+    if not df.empty:
+        found = [c for c in df["category"].dropna().astype(str).unique().tolist()]
+
+    defaults = [
+        "Navigation/Tourism Problems",
+        "Translation Problems",
+        "Delivery Problems",
+        "Money Problems",
+        "Hotel Problems",
+        "Travel Problems",
+        "Other Problems",
+    ]
+
+    # Merge defaults and found categories while preserving defaults order and avoiding duplicates
+    categories = []
+    for d in defaults:
+        if d not in categories:
+            categories.append(d)
+    for c in found:
+        if c and c not in categories:
+            categories.append(c)
+
     return categories
 
 def load_situations_by_category(category: str) -> pd.DataFrame:
