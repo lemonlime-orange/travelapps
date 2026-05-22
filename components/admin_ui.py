@@ -11,6 +11,8 @@ from components.data_loader import (
     load_apps, get_categories,
     add_app, update_app, delete_app,
     check_password,
+    load_situations, get_situation_categories,
+    add_situation, update_situation, delete_situation,
 )
 
 
@@ -63,7 +65,7 @@ def render_admin_panel():
 
     df = load_apps()
 
-    tab_list, tab_add, tab_edit = st.tabs(["📋 App List", "➕ Add App", "✏️ Edit / Delete"])
+    tab_list, tab_add, tab_edit, tab_situation = st.tabs(["📋 App List", "➕ Add App", "✏️ Edit / Delete", "🎯 Situation Helper"])
 
     # 탭 1: 앱 목록
     with tab_list:
@@ -251,3 +253,159 @@ def render_admin_panel():
                 if st.button("Cancel", use_container_width=True):
                     st.session_state.pop("confirm_delete", None)
                     st.experimental_rerun()
+
+    # 탭 4: 상황 도우미 관리
+    with tab_situation:
+        st.subheader("🎯 Situation Helper Management")
+        
+        situation_categories = get_situation_categories()
+        SITUATION_CATEGORIES = [
+            "Navigation/Tourism Problems",
+            "Translation Problems",
+            "Delivery Problems",
+            "Money Problems",
+            "Hotel Problems",
+            "Travel Problems",
+            "Other Problems",
+        ]
+        
+        sub_tab_list, sub_tab_add, sub_tab_edit = st.tabs(["📋 List", "➕ Add", "✏️ Edit / Delete"])
+        
+        # 서브탭 1: 상황 목록
+        with sub_tab_list:
+            st.subheader("📋 All Situations")
+            
+            cat_filter = st.selectbox("Filter by category", ["All"] + SITUATION_CATEGORIES, key="situation_cat_filter")
+            
+            df_situations = load_situations()
+            if cat_filter != "All":
+                view_situations = df_situations[df_situations["category"] == cat_filter]
+            else:
+                view_situations = df_situations
+            
+            if view_situations.empty:
+                st.info("No situations found.")
+            else:
+                display = view_situations[["id", "situation", "emoji", "category"]].copy()
+                display.columns = ["ID", "Situation", "Emoji", "Category"]
+                st.dataframe(display, use_container_width=True, hide_index=True)
+        
+        # 서브탭 2: 상황 추가
+        with sub_tab_add:
+            st.subheader("➕ Add a New Situation")
+            
+            with st.form("form_add_situation", clear_on_submit=True):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    sit_situation = st.text_input("Situation *", placeholder="e.g. I'm lost")
+                    sit_emoji = st.text_input("Emoji *", placeholder="🗺️", max_chars=1)
+                    sit_category = st.selectbox("Category *", SITUATION_CATEGORIES)
+                
+                with col2:
+                    sit_description = st.text_area("Description *", placeholder="Describe this situation...", height=100)
+                    sit_app_ids = st.text_input("App IDs (comma-separated)", placeholder="1,2,3", value="")
+                
+                submit_sit = st.form_submit_button("✅ Add Situation", type="primary", use_container_width=True)
+            
+            if submit_sit:
+                missing = []
+                if not sit_situation.strip():
+                    missing.append("Situation")
+                if not sit_emoji.strip():
+                    missing.append("Emoji")
+                if not sit_description.strip():
+                    missing.append("Description")
+                
+                if missing:
+                    st.error(f"❌ Please fill in: {', '.join(missing)}")
+                else:
+                    new_situation = {
+                        "situation": sit_situation.strip(),
+                        "emoji": sit_emoji.strip(),
+                        "description": sit_description.strip(),
+                        "category": sit_category,
+                        "app_ids": sit_app_ids.strip() if sit_app_ids.strip() else "",
+                    }
+                    add_situation(new_situation)
+                    st.success(f"🎉 **{sit_situation}** has been added successfully!")
+                    st.experimental_rerun()
+        
+        # 서브탭 3: 상황 편집 / 삭제
+        with sub_tab_edit:
+            st.subheader("✏️ Edit or Delete a Situation")
+            
+            df_situations = load_situations()
+            
+            if df_situations.empty:
+                st.info("No situations available to edit.")
+            else:
+                situation_options = {f"[{row['id']}] {row['situation']} ({row['category']})": row["id"] for _, row in df_situations.iterrows()}
+                selected_sit_label = st.selectbox("Select a situation to edit", list(situation_options.keys()), key="situation_edit_select")
+                selected_sit_id = situation_options[selected_sit_label]
+                situation = df_situations[df_situations["id"] == selected_sit_id].iloc[0].to_dict()
+                
+                st.write("")
+                
+                with st.form("form_edit_situation"):
+                    st.markdown(f"**Editing: {situation['situation']}**")
+                    st.write("")
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        new_sit_situation = st.text_input("Situation", value=situation["situation"])
+                        new_sit_emoji = st.text_input("Emoji", value=situation["emoji"], max_chars=1)
+                        new_sit_category = st.selectbox("Category", SITUATION_CATEGORIES, index=SITUATION_CATEGORIES.index(situation["category"]))
+                    
+                    with col2:
+                        new_sit_description = st.text_area("Description", value=situation["description"], height=100)
+                        new_sit_app_ids = st.text_input("App IDs (comma-separated)", value=situation.get("app_ids", ""))
+                    
+                    save_sit_btn = st.form_submit_button("💾 Save Changes", type="primary", use_container_width=True)
+                
+                if save_sit_btn:
+                    missing = []
+                    if not new_sit_situation.strip():
+                        missing.append("Situation")
+                    if not new_sit_emoji.strip():
+                        missing.append("Emoji")
+                    if not new_sit_description.strip():
+                        missing.append("Description")
+                    
+                    if missing:
+                        st.error(f"❌ Please fill in: {', '.join(missing)}")
+                    else:
+                        updated_situation = {
+                            "situation": new_sit_situation.strip(),
+                            "emoji": new_sit_emoji.strip(),
+                            "description": new_sit_description.strip(),
+                            "category": new_sit_category,
+                            "app_ids": new_sit_app_ids.strip() if new_sit_app_ids.strip() else "",
+                        }
+                        update_situation(selected_sit_id, updated_situation)
+                        st.success(f"✅ **{new_sit_situation}** updated successfully!")
+                        st.experimental_rerun()
+                
+                st.divider()
+                st.markdown("#### 🗑️ Delete This Situation")
+                st.warning(f"You are about to delete **{situation['situation']}**. This cannot be undone.")
+                
+                col_del, col_cancel = st.columns([1, 3])
+                with col_del:
+                    if st.button("🗑️ Delete", type="primary", use_container_width=True, key="del_situation_btn"):
+                        st.session_state["confirm_delete_situation"] = selected_sit_id
+                
+                if st.session_state.get("confirm_delete_situation") == selected_sit_id:
+                    st.error(f"⚠️ Are you sure you want to delete **{situation['situation']}**?")
+                    col_yes, col_no = st.columns(2)
+                    with col_yes:
+                        if st.button("Yes, delete it", type="primary", use_container_width=True):
+                            delete_situation(selected_sit_id)
+                            st.session_state.pop("confirm_delete_situation", None)
+                            st.success(f"🗑️ **{situation['situation']}** deleted.")
+                            st.experimental_rerun()
+                    with col_no:
+                        if st.button("Cancel", use_container_width=True):
+                            st.session_state.pop("confirm_delete_situation", None)
+                            st.experimental_rerun()

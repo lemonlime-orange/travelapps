@@ -8,6 +8,7 @@ from components.data_loader import (
     load_apps, filter_by_category, load_favorites, get_apps_by_ids, get_top_rated_app,
 )
 from components.app_card import render_app_card
+from components.situation_helper import render_situation_helper
 
 st.set_page_config(
     page_title="Korea Travel Apps",
@@ -70,24 +71,13 @@ for i, (icon, name, desc) in enumerate(pages):
 st.divider()
 st.caption("Data stored in `data/apps.csv` · Built with Streamlit 🎈")
 
-# ── 관리자 접근 (페이지 하단) ──────────────────────────────────
-with st.expander("Administrator Controls", expanded=False):
-    st.markdown("Only authorized users should use these controls.")
-    col_a, col_b = st.columns([1, 3])
-    with col_a:
-        if st.button("Open Admin Panel"):
-            st.session_state.page = "admin"
-            st.rerun()
-    with col_b:
-        st.markdown("Tip: you can also run the admin page separately with `streamlit run 9_🔧_Admin.py`.")
-
 # 관리 패널 임베드 렌더링
 if st.session_state.page == "admin":
     from components.admin_ui import render_admin_panel
     render_admin_panel()
 
 # 상세 페이지 렌더링
-if st.session_state.page != "home":
+if st.session_state.page != "home" and st.session_state.page != "admin":
     sel = st.session_state.page
     # 상단 네비게이션
     col1, col2 = st.columns([9, 1])
@@ -98,25 +88,41 @@ if st.session_state.page != "home":
             st.session_state.page = "home"
             st.rerun()
 
-    df = load_apps()
-    
-    # 최고 별점 앱 표시 (Favorites, Situation Helper 제외)
-    if sel != "Favorites" and sel != "Situation Helper":
-        top_app = get_top_rated_app(df, sel)
-        if top_app:
-            st.subheader("🌟 Top Rated App")
-            render_app_card(top_app, show_favorite=True)
-            st.divider()
-    
-    if sel == "Favorites":
-        fav_ids = load_favorites()
-        view_df = get_apps_by_ids(df, fav_ids)
+    # 상황 도우미 특별 처리
+    if sel == "Situation Helper":
+        render_situation_helper()
     else:
-        view_df = filter_by_category(df, sel)
+        df = load_apps()
+        
+        # 최고 별점 앱 표시 (Favorites, Situation Helper 제외)
+        if sel != "Favorites" and sel != "Situation Helper":
+            top_app = get_top_rated_app(df, sel)
+            if top_app:
+                st.subheader("🌟 Top Rated App")
+                render_app_card(top_app, show_favorite=True)
+                st.divider()
+        
+        if sel == "Favorites":
+            fav_ids = load_favorites()
+            view_df = get_apps_by_ids(df, fav_ids)
+        else:
+            view_df = filter_by_category(df, sel)
 
-    if view_df.empty:
-        st.info("No apps found for this category.")
-    else:
-        st.subheader("All Apps in This Category")
-        for _, row in view_df.iterrows():
-            render_app_card(row.to_dict())
+        if view_df.empty:
+            st.info("No apps found for this category.")
+        else:
+            st.subheader("All Apps in This Category")
+            for _, row in view_df.iterrows():
+                render_app_card(row.to_dict())
+
+# ── 관리자 접근 (페이지 하단) ──────────────────────────────────
+st.divider()
+with st.expander("Administrator Controls", expanded=False):
+    st.markdown("Only authorized users should use these controls.")
+    col_a, col_b = st.columns([1, 3])
+    with col_a:
+        if st.button("Open Admin Panel"):
+            st.session_state.page = "admin"
+            st.rerun()
+    with col_b:
+        st.markdown("Tip: you can also run the admin page separately with `streamlit run 9_🔧_Admin.py`.")

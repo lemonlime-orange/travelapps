@@ -140,6 +140,53 @@ def check_password(pw: str) -> bool:
 def load_situations() -> pd.DataFrame:
     return pd.read_csv(_path("situations.csv"))
 
+def save_situations(df: pd.DataFrame):
+    """전체 상황 데이터프레임을 CSV에 저장합니다."""
+    df.to_csv(_path("situations.csv"), index=False)
+
+def get_situation_categories() -> list:
+    """모든 상황 카테고리를 반환합니다."""
+    df = load_situations()
+    categories = sorted(df["category"].unique().tolist())
+    return categories
+
+def load_situations_by_category(category: str) -> pd.DataFrame:
+    """특정 카테고리의 상황들을 반환합니다."""
+    df = load_situations()
+    if category == "All":
+        return df
+    return df[df["category"] == category]
+
+def add_situation(new_situation: dict) -> bool:
+    """새 상황을 추가합니다. 성공 시 True 반환."""
+    df = load_situations()
+    new_id = int(df["id"].max()) + 1 if not df.empty else 1
+    new_situation["id"] = new_id
+    new_row = pd.DataFrame([new_situation])
+    df = pd.concat([df, new_row], ignore_index=True)
+    save_situations(df)
+    return True
+
+def update_situation(situation_id: int, updated: dict) -> bool:
+    """기존 상황 정보를 수정합니다. 성공 시 True 반환."""
+    df = load_situations()
+    idx = df.index[df["id"] == situation_id]
+    if idx.empty:
+        return False
+    for key, val in updated.items():
+        df.at[idx[0], key] = val
+    save_situations(df)
+    return True
+
+def delete_situation(situation_id: int) -> bool:
+    """상황을 삭제합니다. 성공 시 True 반환."""
+    df = load_situations()
+    if situation_id not in df["id"].values:
+        return False
+    df = df[df["id"] != situation_id].reset_index(drop=True)
+    save_situations(df)
+    return True
+
 
 # ── 응급 데이터 ───────────────────────────────────────────────
 
