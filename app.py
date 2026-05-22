@@ -6,6 +6,7 @@ app.py  ─  🏠 Main Page
 import streamlit as st
 from components.data_loader import (
     load_apps, filter_by_category, load_favorites, get_apps_by_ids, get_top_rated_app,
+    get_before_land_tips,
 )
 from components.app_card import render_app_card
 from components.situation_helper import render_situation_helper
@@ -28,14 +29,19 @@ st.divider()
 
 # ── 빠른 팁 (접이식) ──────────────────────────────────────────
 with st.expander("⚡ Before You Land in Korea", expanded=False):
-    tips = [
-        ("📶", "Get a SIM or pocket Wi-Fi at Incheon Airport — essential for all apps below."),
-        ("💳", "Load a **T-money card** for seamless subway & bus travel across the country."),
-        ("📥", "Download **Papago** and **Naver Maps** offline before leaving your hotel."),
-        ("🚕", "Install **Kakao T** before your first night — finding taxis gets much easier."),
+    default_tips = [
+        "📶 Get a SIM or pocket Wi-Fi at Incheon Airport — essential for all apps below.",
+        "💳 Load a **T-money card** for seamless subway & bus travel across the country.",
+        "📥 Download **Papago** and **Naver Maps** offline before leaving your hotel.",
+        "🚕 Install **Kakao T** before your first night — finding taxis gets much easier.",
     ]
-    for emoji, tip in tips:
-        st.markdown(f"{emoji} {tip}")
+
+    tips = get_before_land_tips()
+    if not tips:
+        tips = default_tips
+
+    for tip in tips:
+        st.markdown(tip)
 
 st.divider()
 

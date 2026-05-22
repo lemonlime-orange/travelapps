@@ -17,8 +17,8 @@ def render_app_card(app: dict, show_favorite: bool = True):
     fav = is_favorite(app_id)
 
     with st.container(border=True):
-        # 헤더: 이미지 or 아이콘 + 이름 + 즐겨찾기 버튼
-        col_icon, col_title, col_fav = st.columns([1, 6, 1])
+        # 헤더: 이미지 or 아이콘 + 이름 + 다운로드 버튼 + 즐겨찾기 버튼
+        col_icon, col_title, col_download, col_fav = st.columns([1, 5, 1, 1])
         with col_icon:
             image_url = str(app.get("image_url", "") or "").strip()
             if image_url:
@@ -31,6 +31,20 @@ def render_app_card(app: dict, show_favorite: bool = True):
         with col_title:
             st.markdown(f"### {app['name']}")
             st.caption(f"📂 {app['category']}  •  📱 {app['platform']}  •  ⭐ {app['rating']}")
+        # 다운로드 버튼 (즐겨찾기 버튼 왼쪽)
+        download_url = str(app.get("download_url", "") or "").strip()
+        with col_download:
+            if download_url:
+                btn_html = (
+                    f"<a href=\"{download_url}\" target=\"_blank\" "
+                    "style=\"background-color:#1f77ff;color:white;padding:8px 12px;"
+                    "border-radius:6px;text-decoration:none;display:inline-block;font-weight:600;"
+                    "font-size:0.95rem\">Download</a>"
+                )
+                st.markdown(btn_html, unsafe_allow_html=True)
+            else:
+                st.markdown("<div style='color:#888; font-size:0.9rem'>No link</div>", unsafe_allow_html=True)
+
         if show_favorite:
             with col_fav:
                 star = "⭐" if fav else "☆"
@@ -50,5 +64,4 @@ def render_app_card(app: dict, show_favorite: bool = True):
         # 여행 팁
         st.info(f"💡 **Tip:** {app['tips']}")
 
-        # 링크
-        st.markdown(f"[🔗 Official Site]({app['download_url']})")
+        # 링크는 상단의 Download 버튼으로 대체됨

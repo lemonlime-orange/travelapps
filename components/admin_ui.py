@@ -14,6 +14,7 @@ from components.data_loader import (
     load_situations, get_situation_categories,
     add_situation, update_situation, delete_situation,
 )
+from components.data_loader import get_before_land_tips, update_before_land_tips
 
 
 def render_admin_panel():
@@ -65,7 +66,7 @@ def render_admin_panel():
 
     df = load_apps()
 
-    tab_list, tab_add, tab_edit, tab_situation = st.tabs(["📋 App List", "➕ Add App", "✏️ Edit / Delete", "🎯 Situation Helper"])
+    tab_list, tab_add, tab_edit, tab_situation, tab_before = st.tabs(["📋 App List", "➕ Add App", "✏️ Edit / Delete", "🎯 Situation Helper", "📝 Before You Land"])
 
     # 탭 1: 앱 목록
     with tab_list:
@@ -409,3 +410,21 @@ def render_admin_panel():
                         if st.button("Cancel", use_container_width=True):
                             st.session_state.pop("confirm_delete_situation", None)
                             st.experimental_rerun()
+
+        # 탭: Before You Land 편집
+        with tab_before:
+            st.subheader("📝 Edit 'Before You Land in Korea' Tips")
+
+            current = get_before_land_tips()
+            default_text = "\n".join(current) if current else "📶 Get a SIM or pocket Wi-Fi at Incheon Airport — essential for all apps below.\n💳 Load a **T-money card** for seamless subway & bus travel across the country.\n📥 Download **Papago** and **Naver Maps** offline before leaving your hotel.\n🚕 Install **Kakao T** before your first night — finding taxis gets much easier."
+
+            with st.form("form_before_land"):
+                st.markdown("Tips: 입력 시 각 라인 하나의 팁으로 취급됩니다. 이모지를 포함할 수 있습니다.")
+                tips_text = st.text_area("Tips (one per line)", value=default_text, height=200)
+                save_tips = st.form_submit_button("💾 Save Tips", type="primary")
+
+            if save_tips:
+                new_tips = [line.strip() for line in tips_text.splitlines() if line.strip()]
+                update_before_land_tips(new_tips)
+                st.success("✅ 'Before You Land' tips updated.")
+                st.experimental_rerun()
