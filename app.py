@@ -74,6 +74,13 @@ for i, (icon, name, desc) in enumerate(pages):
                 st.session_state.page = name
                 st.rerun()
 
+# Downloaded Apps 버튼을 내비게이션 카드 아래에 별도로 추가
+with st.container():
+    st.markdown("### ⬇️ Downloaded Apps")
+    if st.button("Open", key="open_downloaded_special"):
+        st.session_state.page = "Downloaded Apps"
+        st.rerun()
+
 st.divider()
 st.caption("Data stored in `data/apps.csv` · Built with Streamlit 🎈")
 
@@ -100,8 +107,8 @@ if st.session_state.page != "home" and st.session_state.page != "admin":
     else:
         df = load_apps()
         
-        # 최고 별점 앱 표시 (Favorites, Situation Helper 제외)
-        if sel != "Favorites" and sel != "Situation Helper":
+        # 최고 별점 앱 표시 (Favorites, Downloaded Apps, Situation Helper 제외)
+        if sel not in ("Favorites", "Downloaded Apps", "Situation Helper"):
             top_app = get_top_rated_app(df, sel)
             if top_app:
                 st.subheader("🌟 Top Rated App")
@@ -111,6 +118,10 @@ if st.session_state.page != "home" and st.session_state.page != "admin":
         if sel == "Favorites":
             fav_ids = load_favorites()
             view_df = get_apps_by_ids(df, fav_ids)
+        elif sel == "Downloaded Apps":
+            from components.data_loader import load_downloads
+            dl_ids = load_downloads()
+            view_df = get_apps_by_ids(df, dl_ids)
         else:
             view_df = filter_by_category(df, sel)
 
@@ -119,7 +130,10 @@ if st.session_state.page != "home" and st.session_state.page != "admin":
         else:
             st.subheader("All Apps in This Category")
             for _, row in view_df.iterrows():
-                render_app_card(row.to_dict())
+                if sel == "Downloaded Apps":
+                    render_app_card(row.to_dict(), show_favorite=True, show_download_toggle=True, show_download_remove=True)
+                else:
+                    render_app_card(row.to_dict())
 
 # ── 관리자 접근 (페이지 하단) ──────────────────────────────────
 st.divider()

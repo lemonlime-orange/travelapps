@@ -7,6 +7,8 @@ admin_ui.py
 """
 
 import streamlit as st
+import os
+import time
 from components.data_loader import (
     load_apps, get_categories,
     add_app, update_app, delete_app,
@@ -49,7 +51,7 @@ def render_admin_panel():
                     st.experimental_rerun()
                 else:
                     st.error("❌ Incorrect password.")
-        st.caption("Default password: `admin1234` — change `ADMIN_PASSWORD` in `components/data_loader.py`")
+        st.caption("change `ADMIN_PASSWORD` in `components/data_loader.py`")
         st.stop()
 
     # 관리자 대시보드
@@ -115,6 +117,9 @@ def render_admin_panel():
                     height=120,
                 )
                 tips = st.text_area("Travel Tip *", placeholder="A helpful tip for tourists...", height=80)
+                guide_uploads = st.file_uploader("Guide Images (upload files)", accept_multiple_files=True, type=["png", "jpg", "jpeg", "gif", "webp"]) 
+                guide_urls = st.text_area("Guide Image URLs (one per line)", placeholder="https://example.com/step1.png\nhttps://...", height=80)
+                guide_captions = st.text_area("Guide Image Captions (one per line, matching images)", placeholder="Step 1: Open the app\nStep 2: Tap 'Start'", height=80)
 
             submitted = st.form_submit_button("✅ Add App", type="primary", use_container_width=True)
 
@@ -139,6 +144,33 @@ def render_admin_panel():
                 st.error(f"❌ Please fill in: {', '.join(missing)}")
             else:
                 features = "|".join(line.strip() for line in features_raw.splitlines() if line.strip())
+
+                # 업로드 파일 저장
+                img_paths = []
+                if guide_uploads:
+                    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    images_dir = os.path.join(base_dir, "assets", "images")
+                    os.makedirs(images_dir, exist_ok=True)
+                    for f in guide_uploads:
+                        safe_name = f"{int(time.time())}_{f.name}"
+                        save_path = os.path.join(images_dir, safe_name)
+                        with open(save_path, "wb") as out:
+                            out.write(f.getbuffer())
+                        rel_path = os.path.join("assets", "images", safe_name).replace('\\', '/')
+                        img_paths.append(rel_path)
+
+                # 텍스트로 입력된 URL 추가
+                for line in (guide_urls or "").splitlines():
+                    line = line.strip()
+                    if line:
+                        img_paths.append(line)
+
+                guide_images_value = "|".join(img_paths)
+
+                # 캡션 처리 (각 라인 하나의 캡션, 이미지 순서와 매칭)
+                captions = [line.strip() for line in (guide_captions or "").splitlines() if line.strip()]
+                guide_captions_value = "|".join(captions)
+
                 new_app = {
                     "name": name.strip(),
                     "category": "|".join(category),
@@ -150,6 +182,8 @@ def render_admin_panel():
                     "download_url": download_url.strip(),
                     "features": features,
                     "tips": tips.strip(),
+                    "guide_images": guide_images_value,
+                    "guide_image_captions": guide_captions_value,
                 }
                 add_app(new_app)
                 st.success(f"🎉 **{name}** has been added successfully!")
@@ -192,6 +226,20 @@ def render_admin_panel():
                 features_display = "\n".join(app["features"].split("|"))
                 new_features_raw = st.text_area("Features (one per line)", value=features_display, height=120)
                 new_tips = st.text_area("Travel Tip", value=app["tips"], height=80)
+                # 기존 가이드 이미지 및 캡션 불러오기
+                current_imgs = [s for s in str(app.get("guide_images", "") or "").split("|") if s.strip()]
+                current_captions = [s for s in str(app.get("guide_image_captions", "") or "").split("|") if s.strip()]
+                if current_imgs:
+                    st.markdown("**Current Guide Images**")
+                    cols_preview = st.columns(min(3, len(current_imgs)))
+                    for i, img in enumerate(current_imgs):
+                        try:
+                            cols_preview[i % 3].image(img, width=200)
+                        except Exception:
+                            cols_preview[i % 3].markdown(f"Failed to load: {img}")
+                new_guide_uploads = st.file_uploader("Guide Images (upload new files to add)", accept_multiple_files=True, type=["png", "jpg", "jpeg", "gif", "webp"])                
+                new_guide_text = st.text_area("Guide Image URLs (one per line)", value="\n".join(current_imgs), height=80)
+                new_guide_captions = st.text_area("Guide Image Captions (one per line, matching images)", value="\n".join(current_captions), height=80)
 
             save_btn = st.form_submit_button("💾 Save Changes", type="primary", use_container_width=True)
 
@@ -216,6 +264,32 @@ def render_admin_panel():
                 st.error(f"❌ Please fill in: {', '.join(missing)}")
             else:
                 new_features = "|".join(line.strip() for line in new_features_raw.splitlines() if line.strip())
+
+                # 새로 업로드된 파일 저장 및 텍스트로 입력된 URL 합치기
+                updated_img_paths = []
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                images_dir = os.path.join(base_dir, "assets", "images")
+                os.makedirs(images_dir, exist_ok=True)
+                if new_guide_uploads:
+                    for f in new_guide_uploads:
+                        safe_name = f"{int(time.time())}_{f.name}"
+                        save_path = os.path.join(images_dir, safe_name)
+                        with open(save_path, "wb") as out:
+                            out.write(f.getbuffer())
+                        rel_path = os.path.join("assets", "images", safe_name).replace('\\', '/')
+                        updated_img_paths.append(rel_path)
+
+                for line in (new_guide_text or "").splitlines():
+                    line = line.strip()
+                    if line:
+                        updated_img_paths.append(line)
+
+                guide_images_combined = "|".join(updated_img_paths)
+
+                # 새 캡션 처리
+                updated_captions = [line.strip() for line in (new_guide_captions or "").splitlines() if line.strip()]
+                guide_captions_combined = "|".join(updated_captions)
+
                 updated = {
                     "name": new_name.strip(),
                     "category": "|".join(new_category),
@@ -227,6 +301,8 @@ def render_admin_panel():
                     "download_url": new_url.strip(),
                     "features": new_features,
                     "tips": new_tips.strip(),
+                    "guide_images": guide_images_combined,
+                    "guide_image_captions": guide_captions_combined,
                 }
                 update_app(selected_id, updated)
                 st.success(f"✅ **{new_name}** updated successfully!")

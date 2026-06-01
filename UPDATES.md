@@ -64,3 +64,53 @@
   - data_loader.py
   - app.py
 
+
+
+---
+
+## 0.2.03
+- 날짜: 2026-05-22 
+- 변경자: lemonlime-orange
+- 요약: 앱 Download 버튼 생성
+- 커밋 제목: 앱 상세 페이지 (앱 사용 방법 이미지 첨부 기능)
+
+
+---
+
+## 0.3.01
+- 날짜: 2026-06-01
+- 제목: README 문서 정리 및 실행/기여/트러블슈팅 섹션 추가
+- 변경자: assistant (lemonlime-orange)
+- 요약: `README.md`를 재구성하여 빠른 시작, 데이터 스키마, 기여 방법, 문제 해결 항목을 추가함
+- 커밋 제목: docs: reorganize README and add quickstart/contributing/troubleshooting
+- 변경 내용:
+  - `README.md` 전반 구조 정리 및 목차 추가
+  - 설치/실행 가이드 (`pip install -r requirements.txt`, `streamlit run app.py`) 추가
+  - 데이터 스키마 및 폴더 구조 명확화
+  - 관리자 접근 방법, 기여 가이드, 문제 해결(Troubleshooting) 섹션 추가
+- 관련 파일:
+  - `README.md`
+- 비고:
+  - 향후 영문/일본어 번역 또는 추가 문서 요청 시 별도 업데이트 예정
+
+---
+
+## 0.3.02
+- 날짜: 2026-06-01
+- 변경자: assistant (lemonlime-orange)
+- 요약: Downloaded Apps 기능 추가 및 다운로드 관리 UI 개선
+- 커밋 제목: feat: add Downloaded Apps list and download-toggle UI
+- 변경 내용:
+  - `Downloaded Apps` 기능 추가: 사용자가 앱 상세의 새 버튼으로 다운로드 상태를 표시/토글할 수 있으며, 다운로드한 앱을 별도 목록에서 확인 가능
+  - `components/data_loader.py`에 다운로드 관리 함수 추가: `load_downloads`, `save_downloads`, `is_downloaded`, `toggle_downloaded`
+  - `components/app_card.py`에 다운로드 표시(토글) 버튼 추가 — 기존 Download 링크 옆에 위치, 클릭 시 `downloads.csv` 업데이트
+  - `app.py`에서 `Downloaded Apps` 페이지를 별도 버튼으로 렌더링하도록 변경(내비게이션 카드 그리드 아래에 위치)
+  - 다운로드 목록에서 항목 제거(Remove from Downloads) 버튼 추가
+  - 초기 빈 데이터 파일 생성: `data/downloads.csv`
+- 관련 파일:
+  - `components/data_loader.py`
+  - `components/app_card.py`
+  - `app.py`
+  - `data/downloads.csv`
+- 비고:
+  - Download 버튼 클릭과 자동 연동(클릭 시 자동으로 다운로드로 표시) 또는 다운로드 전체 삭제 기능은 향후 추가 가능

@@ -23,6 +23,12 @@ def load_apps() -> pd.DataFrame:
         df["icon"] = ""
     if "image_url" not in df.columns:
         df["image_url"] = ""
+    # guide_images: 파이프(|)로 구분된 이미지 경로/URL 목록 (앱 사용 가이드용)
+    if "guide_images" not in df.columns:
+        df["guide_images"] = ""
+    # guide_image_captions: 파이프(|)로 구분된 각 이미지별 캡션
+    if "guide_image_captions" not in df.columns:
+        df["guide_image_captions"] = ""
     return df
 
 def get_categories(df: pd.DataFrame) -> list:
@@ -86,6 +92,33 @@ def toggle_favorite(app_id: int):
     save_favorites(favs)
 
 
+# ── 다운로드(Downloaded Apps) ─────────────────────────────────────────────
+def load_downloads() -> list:
+    p = _path("downloads.csv")
+    if not os.path.exists(p):
+        # 파일이 없으면 빈 리스트 반환
+        return []
+    df = pd.read_csv(p)
+    if "app_id" not in df.columns:
+        return []
+    return df["app_id"].dropna().astype(int).tolist()
+
+def save_downloads(app_ids: list):
+    df = pd.DataFrame({"app_id": app_ids})
+    df.to_csv(_path("downloads.csv"), index=False)
+
+def is_downloaded(app_id: int) -> bool:
+    return app_id in load_downloads()
+
+def toggle_downloaded(app_id: int):
+    dl = load_downloads()
+    if app_id in dl:
+        dl.remove(app_id)
+    else:
+        dl.append(app_id)
+    save_downloads(dl)
+
+
 # ── 관리자: 앱 CRUD ───────────────────────────────────────────
 
 def save_apps(df: pd.DataFrame):
@@ -130,7 +163,7 @@ def delete_app(app_id: int) -> bool:
 
 # ── 관리자: 비밀번호 확인 ──────────────────────────────────────
 
-ADMIN_PASSWORD = "admin1234"  # 실제 배포 시 환경변수로 교체 권장
+ADMIN_PASSWORD = "travel2korea"  # 실제 배포 시 환경변수로 교체 권장
 
 def check_password(pw: str) -> bool:
     return pw == ADMIN_PASSWORD
