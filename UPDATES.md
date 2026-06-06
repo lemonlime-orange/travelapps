@@ -141,3 +141,18 @@
   - `9_🔧_Admin.py`
 - 비고:
   - 다음 권장 작업: `components.data_loader`의 `load_favorites`/`load_downloads`를 사용자별 파일로 전환, 비밀번호 정책 강화, 이메일 검증 및 비밀번호 재설정 기능 추가
+
+---
+
+## 1.0.02
+- 날짜: 2026-06-06
+- 변경자: lemonlime-orange
+- 요약: Python 문법 검사 및 오류 수정
+- 커밋 제목: python errors fixed
+- 변경 내용:
+  - 전체 파이썬 파일 문법 검사(py_compile) 실행
+  - 9_🔧_Admin.py에서 최상단의 불필요한 공백 라인과 import 앞의 들여쓰기 제거
+
+- 관련 파일:
+  - `9_🔧_Admin.py`
+- 비고: N/A
