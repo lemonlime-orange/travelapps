@@ -114,3 +114,30 @@
   - `data/downloads.csv`
 - 비고:
   - Download 버튼 클릭과 자동 연동(클릭 시 자동으로 다운로드로 표시) 또는 다운로드 전체 삭제 기능은 향후 추가 가능
+
+---
+
+## 1.0.01
+- 날짜: 2026-06-06
+- 변경자: assistant (lemonlime-orange)
+- 제목: 사용자 인증(로그인/회원가입) 및 사용자별 즐겨찾기/다운로드 저장 도입
+- 요약: 기본 로그인/회원가입 기능과 사용자별 데이터 저장 구조를 추가하고 기존 favorites/downloads를 사용자별 파일로 마이그레이션하는 스크립트 및 관련 수정사항을 적용
+- 커밋 제목: feat(auth): add user accounts, per-user favorites/downloads, migration
+- 변경 내용:
+  - 사용자 데이터 파일 추가: `data/users.csv`, `data/user_favorites.csv`, `data/user_downloads.csv`
+  - 비밀번호 해싱 도입: `bcrypt` 사용 (의존성 `requirements.txt`에 추가)
+  - 앱 사이드바에 로그인/회원가입 UI 추가 및 세션 기반 `st.session_state.user` 관리 (`app.py` 수정)
+  - 기존 `data/favorites.csv` 및 `data/downloads.csv`를 사용자별 파일로 이전하는 마이그레이션 스크립트 추가: `scripts/migrate_to_user_files.py` (실행 시 원본 백업 생성)
+  - `9_🔧_Admin.py` 파일의 손상된 내용을 정리하고 정상 실행 래퍼로 복원
+  - Streamlit 실행 시 가상환경(.venv) Python을 사용하도록 권장(앱에서 `bcrypt`를 불러오기 위해 필요)
+  - 마이그레이션 실행 결과: 원본 파일이 빈 상태(헤더만)이라 현재 마이그레이션된 행 없음; 스크립트는 guest 사용자(`user_id=0`)를 생성함
+- 관련 파일:
+  - `data/users.csv`
+  - `data/user_favorites.csv`
+  - `data/user_downloads.csv`
+  - `scripts/migrate_to_user_files.py`
+  - `app.py`
+  - `requirements.txt`
+  - `9_🔧_Admin.py`
+- 비고:
+  - 다음 권장 작업: `components.data_loader`의 `load_favorites`/`load_downloads`를 사용자별 파일로 전환, 비밀번호 정책 강화, 이메일 검증 및 비밀번호 재설정 기능 추가

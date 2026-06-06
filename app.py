@@ -4,6 +4,10 @@ app.py  ─  🏠 Main Page
 """
 
 import streamlit as st
+import os
+import csv
+import bcrypt
+from datetime import datetime
 from components.data_loader import (
     load_apps, filter_by_category, load_favorites, get_apps_by_ids, get_top_rated_app,
     get_before_land_tips,
@@ -16,6 +20,119 @@ st.set_page_config(
     page_icon="🇰🇷",
     layout="wide",
 )
+
+
+# --------------------- Authentication helpers ---------------------
+USERS_CSV = os.path.join('data', 'users.csv')
+
+
+def load_users():
+    users = []
+    if not os.path.exists(USERS_CSV):
+        return users
+    with open(USERS_CSV, newline='', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for r in reader:
+            users.append(r)
+    return users
+
+
+def find_user_by_username(username):
+    for u in load_users():
+        if u.get('username') == username:
+            return u
+    return None
+
+
+def append_user(user):
+    fieldnames = ['user_id', 'username', 'password_hash', 'salt', 'email', 'created_at']
+    write_header = not os.path.exists(USERS_CSV) or os.path.getsize(USERS_CSV) == 0
+    with open(USERS_CSV, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if write_header:
+            writer.writeheader()
+        writer.writerow(user)
+
+
+def create_user(username, password, email=''):
+    users = load_users()
+    max_id = 0
+    for u in users:
+        try:
+            uid = int(u.get('user_id', 0))
+            if uid > max_id:
+                max_id = uid
+        except ValueError:
+            continue
+    new_id = str(max_id + 1)
+    salt = bcrypt.gensalt()
+    pw_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
+    user = {
+        'user_id': new_id,
+        'username': username,
+        'password_hash': pw_hash.decode('utf-8'),
+        'salt': salt.decode('utf-8'),
+        'email': email,
+        'created_at': datetime.utcnow().isoformat() + 'Z' if 'datetime' in globals() else ''
+    }
+    append_user(user)
+    return user
+
+
+def verify_user(username, password):
+    u = find_user_by_username(username)
+    if not u:
+        return False, None
+    stored_hash = u.get('password_hash', '').encode('utf-8')
+    try:
+        ok = bcrypt.checkpw(password.encode('utf-8'), stored_hash)
+    except Exception:
+        ok = False
+    return ok, u
+
+
+# --------------------- Authentication UI (sidebar) -----------------
+if 'user' not in st.session_state:
+    st.session_state.user = None
+
+with st.sidebar:
+    st.header('Account')
+    if st.session_state.user:
+        st.markdown(f"**Signed in:** {st.session_state.user.get('username')}")
+        if st.button('Logout'):
+            st.session_state.user = None
+            st.experimental_rerun()
+    else:
+        with st.expander('Login', expanded=True):
+            login_user = st.text_input('Username', key='login_user')
+            login_pass = st.text_input('Password', type='password', key='login_pass')
+            if st.button('Login', key='do_login'):
+                ok, user = verify_user(login_user, login_pass)
+                if ok:
+                    st.session_state.user = user
+                    st.success('Logged in')
+                    st.experimental_rerun()
+                else:
+                    st.error('Invalid username or password')
+
+        with st.expander('Sign up', expanded=False):
+            su_user = st.text_input('Choose username', key='su_user')
+            su_email = st.text_input('Email (optional)', key='su_email')
+            su_pw = st.text_input('Password', type='password', key='su_pw')
+            su_pw2 = st.text_input('Confirm password', type='password', key='su_pw2')
+            if st.button('Create account', key='do_signup'):
+                if not su_user or not su_pw:
+                    st.error('Provide username and password')
+                elif su_pw != su_pw2:
+                    st.error('Passwords do not match')
+                elif find_user_by_username(su_user):
+                    st.error('Username already exists')
+                else:
+                    user = create_user(su_user, su_pw, su_email)
+                    st.session_state.user = user
+                    st.success('Account created and signed in')
+                    st.experimental_rerun()
+
 
 # ── 헤더 ─────────────────────────────────────────────────────
 col_flag, col_title = st.columns([1, 6])
