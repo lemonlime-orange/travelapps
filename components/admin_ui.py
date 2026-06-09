@@ -7,11 +7,10 @@ admin_ui.py
 """
 
 import streamlit as st
-import os
-import time
 from components.data_loader import (
     load_apps, get_categories,
     add_app, update_app, delete_app,
+    upload_internal_asset,
     check_password,
     load_situations, get_situation_categories,
     add_situation, update_situation, delete_situation,
@@ -148,16 +147,11 @@ def render_admin_panel():
                 # 업로드 파일 저장
                 img_paths = []
                 if guide_uploads:
-                    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                    images_dir = os.path.join(base_dir, "assets", "images")
-                    os.makedirs(images_dir, exist_ok=True)
                     for f in guide_uploads:
-                        safe_name = f"{int(time.time())}_{f.name}"
-                        save_path = os.path.join(images_dir, safe_name)
-                        with open(save_path, "wb") as out:
-                            out.write(f.getbuffer())
-                        rel_path = os.path.join("assets", "images", safe_name).replace('\\', '/')
-                        img_paths.append(rel_path)
+                        try:
+                            img_paths.append(upload_internal_asset(f, "guide-images"))
+                        except Exception as exc:
+                            st.error(f"Failed to upload guide image to Supabase Storage: {exc}")
 
                 # 텍스트로 입력된 URL 추가
                 for line in (guide_urls or "").splitlines():
@@ -194,6 +188,10 @@ def render_admin_panel():
         st.subheader("✏️ Edit or Delete an App")
 
         df = load_apps()
+
+        if df.empty:
+            st.info("No apps are available to edit yet. Add an app or run the Supabase migration first.")
+            st.stop()
 
         app_options = {f"[{row['id']}] {row['name']}": row["id"] for _, row in df.iterrows()}
         selected_label = st.selectbox("Select an app to edit", list(app_options.keys()), key="edit_select")
@@ -267,17 +265,12 @@ def render_admin_panel():
 
                 # 새로 업로드된 파일 저장 및 텍스트로 입력된 URL 합치기
                 updated_img_paths = []
-                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                images_dir = os.path.join(base_dir, "assets", "images")
-                os.makedirs(images_dir, exist_ok=True)
                 if new_guide_uploads:
                     for f in new_guide_uploads:
-                        safe_name = f"{int(time.time())}_{f.name}"
-                        save_path = os.path.join(images_dir, safe_name)
-                        with open(save_path, "wb") as out:
-                            out.write(f.getbuffer())
-                        rel_path = os.path.join("assets", "images", safe_name).replace('\\', '/')
-                        updated_img_paths.append(rel_path)
+                        try:
+                            updated_img_paths.append(upload_internal_asset(f, "guide-images"))
+                        except Exception as exc:
+                            st.error(f"Failed to upload guide image to Supabase Storage: {exc}")
 
                 for line in (new_guide_text or "").splitlines():
                     line = line.strip()

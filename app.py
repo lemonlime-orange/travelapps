@@ -199,7 +199,7 @@ with st.container():
         st.rerun()
 
 st.divider()
-st.caption("Data stored in `data/apps.csv` · Built with Streamlit 🎈")
+st.caption("App data stored in Supabase · Built with Streamlit 🎈")
 
 # 관리 패널 임베드 렌더링
 if st.session_state.page == "admin":

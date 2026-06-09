@@ -33,7 +33,7 @@ def render_sidebar(categories: list) -> dict:
         )
 
         st.divider()
-        st.caption("📌 Data stored in `data/apps.csv`")
+        st.caption("📌 App data stored in Supabase")
         st.caption("Built with Streamlit 🎈")
 
     return {

@@ -156,3 +156,40 @@
 - 관련 파일:
   - `9_🔧_Admin.py`
 - 비고: N/A
+
+---
+
+## 1.1.01
+- 날짜: 2026-06-08
+- 변경자: (작성자 미지정 — 원하시면 이름으로 업데이트합니다)
+- 요약: 마지막 커밋(fe18247 / 1.0.02) 이후 워킹트리 및 스테이징된 변경사항 요약
+- 커밋 제목: Uncommitted changes since fe18247
+- 변경 내용:
+  - 여러 파일에 수정이 발생했으며 일부 파일은 새로 추가됨(아직 커밋되지 않음).
+  - 주요 변경 파일(요약):
+    - `components/data_loader.py`: 대규모 수정(많은 라인 추가/변경)
+    - `components/admin_ui.py`: 관리자 UI 관련 수정 및 보완
+    - `components/sidebar.py`: 경미한 수정
+    - `app.py`: 소규모 변경
+    - `requirements.txt`: 변경(줄바꿈/포맷/의존성 수정 가능성)
+  - 새로 작업 중인(언트랙) 파일 및 디렉터리:
+    - `.gitignore` (언트랙)
+    - `.streamlit/` (언트랙 디렉터리)
+    - `scripts/migrate_admin_data_to_supabase.py` (언트랙)
+    - `scripts/migrate_apps_to_supabase.py` (언트랙)
+    - `supabase_apps_schema.sql` (언트랙)
+  - 빌드/캐시 아티팩트가 워킹트리에 존재함(예: `__pycache__` 및 .pyc 파일) — 추후 .gitignore에 추가 권장
+- 관련 파일:
+  - `app.py`
+  - `components/admin_ui.py`
+  - `components/data_loader.py`
+  - `components/sidebar.py`
+  - `requirements.txt`
+  - `.gitignore`
+  - `.streamlit/`
+  - `scripts/migrate_admin_data_to_supabase.py`
+  - `scripts/migrate_apps_to_supabase.py`
+  - `supabase_apps_schema.sql`
+  - `__pycache__/` 폴더 및 `.pyc` 파일들
+- 비고:
+  - 현재 변경사항은 아직 커밋되지 않았습니다. 원하시면 제가 커밋 메시지 초안을 작성하고 커밋 및 푸시까지 대신 진행해드릴 수 있습니다.
