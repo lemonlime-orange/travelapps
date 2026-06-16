@@ -161,7 +161,7 @@
 
 ## 1.1.01
 - 날짜: 2026-06-08
-- 변경자: (작성자 미지정 — 원하시면 이름으로 업데이트합니다)
+- 변경자: codex (lemonlime-orange)
 - 요약: 마지막 커밋(fe18247 / 1.0.02) 이후 워킹트리 및 스테이징된 변경사항 요약
 - 커밋 제목: Uncommitted changes since fe18247
 - 변경 내용:
@@ -214,3 +214,25 @@
 - 비고:
   - 권장 이미지 크기: 가로 800px 내외, 형식 PNG/JPEG 권장
   - 이미지가 없는 경우 대체 텍스트 또는 기본 안내를 표시하도록 처리됨
+
+---
+
+## 1.1.03
+- 날짜: 2026-06-16
+- 변경자: codex (lemonlime-orange)
+- 제목: Admin UI 개선, 앱 카드/데이터로더 보완 및 Supabase 스키마 업데이트
+- 요약: 관리자 UI 및 앱 카드 동작을 개선하고 `components/data_loader.py`의 메타데이터/이미지 로드 로직을 보완했으며, Supabase 마이그레이션용 스키마 파일을 추가/수정했습니다.
+- 변경 내용:
+  - `components/admin_ui.py`에서 관리자 설정 및 편집 흐름 개선(레이아웃/버튼 동작, 접근성 보완)
+  - `components/app_card.py`에서 앱 카드 렌더링 개선: 가이드 이미지 처리, 다운로드/링크 동작 안정화
+  - `components/data_loader.py`에서 앱 메타데이터 및 이미지 경로 로드/저장 로직을 안정화하고 예외 처리를 강화
+  - `supabase_apps_schema.sql` 파일 추가 및 스키마 보완으로 Supabase로의 데이터 마이그레이션 준비
+  - `UPDATES.md` 파일 업데이트(해당 변경사항 요약 추가)
+- 관련 파일:
+  - `components/admin_ui.py`
+  - `components/app_card.py`
+  - `components/data_loader.py`
+  - `supabase_apps_schema.sql`
+  - `UPDATES.md`
+- 비고:
+  - 이 변경은 최근 커밋(작성자: Lee Jumyung)에 포함된 수정 사항을 요약한 것입니다.

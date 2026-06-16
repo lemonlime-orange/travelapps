@@ -85,7 +85,8 @@ streamlit run 9_🔧_Admin.py
 | image_url | 로고/이미지 URL 또는 상대경로(옵션) |
 | platform | 지원 플랫폼 (예: iOS, Android) |
 | rating | 평점 (1.0–5.0) |
-| download_url | 공식 URL |
+| app_store_url | Apple App Store URL |
+| play_store_url | Google Play Store URL |
 | features | 주요 기능(여러 항목은 `|`로 구분) |
 | tips | 간단 팁 |
 
@@ -158,4 +159,3 @@ streamlit run app.py --server.port 8502
 이메일: theonlylemon9@gmail.com
 
 ---
-

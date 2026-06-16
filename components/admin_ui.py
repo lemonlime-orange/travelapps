@@ -30,6 +30,17 @@ def _join_pipe_preserve_order(values):
     return "|".join(str(value or "").strip() for value in values)
 
 
+def _first_store_url(app_store_url, play_store_url):
+    return app_store_url.strip() or play_store_url.strip()
+
+
+def _initial_store_urls(app):
+    app_store_url = str(app.get("app_store_url", "") or "").strip()
+    play_store_url = str(app.get("play_store_url", "") or "").strip()
+
+    return app_store_url, play_store_url
+
+
 def _match_captions_to_images(captions, image_count):
     captions = list(captions)
     if len(captions) < image_count:
@@ -128,7 +139,8 @@ def render_admin_panel():
 
             with col2:
                 description = st.text_area("Description *", placeholder="Short description of the app...", height=100)
-                download_url = st.text_input("Official Site URL *", placeholder="https://...")
+                app_store_url = st.text_input("Apple App Store URL", placeholder="https://apps.apple.com/...")
+                play_store_url = st.text_input("Google Play Store URL", placeholder="https://play.google.com/store/apps/details?id=...")
                 features_raw = st.text_area(
                     "Key Features * (one per line)",
                     placeholder="Taxi booking\nReal-time tracking\nFare estimate",
@@ -156,8 +168,8 @@ def render_admin_panel():
                 missing.append("Image URL")
             if not description.strip():
                 missing.append("Description")
-            if not download_url.strip():
-                missing.append("URL")
+            if not _first_store_url(app_store_url, play_store_url):
+                missing.append("Apple App Store URL or Google Play Store URL")
             if not features_raw.strip():
                 missing.append("Features")
             if not tips.strip():
@@ -204,7 +216,8 @@ def render_admin_panel():
                         "platform": platform,
                         "rating": rating,
                         "description": description.strip(),
-                        "download_url": download_url.strip(),
+                        "app_store_url": app_store_url.strip(),
+                        "play_store_url": play_store_url.strip(),
                         "features": features,
                         "tips": tips.strip(),
                         "guide_images": guide_images_value,
@@ -229,6 +242,7 @@ def render_admin_panel():
         selected_label = st.selectbox("Select an app to edit", list(app_options.keys()), key="edit_select")
         selected_id = app_options[selected_label]
         app = df[df["id"] == selected_id].iloc[0].to_dict()
+        current_app_store_url, current_play_store_url = _initial_store_urls(app)
 
         st.write("")
 
@@ -252,7 +266,8 @@ def render_admin_panel():
 
             with col2:
                 new_description = st.text_area("Description", value=app["description"], height=100)
-                new_url = st.text_input("Official URL", value=app["download_url"])
+                new_app_store_url = st.text_input("Apple App Store URL", value=current_app_store_url)
+                new_play_store_url = st.text_input("Google Play Store URL", value=current_play_store_url)
                 features_display = "\n".join(app["features"].split("|"))
                 new_features_raw = st.text_area("Features (one per line)", value=features_display, height=120)
                 new_tips = st.text_area("Travel Tip", value=app["tips"], height=80)
@@ -291,8 +306,8 @@ def render_admin_panel():
                 missing.append("Image URL")
             if not new_description.strip():
                 missing.append("Description")
-            if not new_url.strip():
-                missing.append("URL")
+            if not _first_store_url(new_app_store_url, new_play_store_url):
+                missing.append("Apple App Store URL or Google Play Store URL")
             if not new_features_raw.strip():
                 missing.append("Features")
             if not new_tips.strip():
@@ -341,7 +356,8 @@ def render_admin_panel():
                     "platform": new_platform,
                     "rating": new_rating,
                     "description": new_description.strip(),
-                    "download_url": new_url.strip(),
+                    "app_store_url": new_app_store_url.strip(),
+                    "play_store_url": new_play_store_url.strip(),
                     "features": new_features,
                     "tips": new_tips.strip(),
                     "guide_images": guide_images_combined,

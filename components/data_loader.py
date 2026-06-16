@@ -22,6 +22,7 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 APPS_TABLE = "apps"
 SITUATIONS_TABLE = "situations"
 SETTINGS_TABLE = "app_settings"
+STORE_URL_COLUMNS = ("app_store_url", "play_store_url")
 APP_COLUMNS = [
     "id",
     "name",
@@ -30,7 +31,8 @@ APP_COLUMNS = [
     "description",
     "platform",
     "rating",
-    "download_url",
+    "app_store_url",
+    "play_store_url",
     "features",
     "tips",
     "image_url",
@@ -115,6 +117,20 @@ def _normalize_apps_df(df):
     return df[APP_COLUMNS]
 
 
+def _schema_missing_store_url_columns(exc):
+    message = str(exc).lower()
+    return any(col in message for col in STORE_URL_COLUMNS)
+
+
+def _store_url_schema_message(exc):
+    if _schema_missing_store_url_columns(exc):
+        return (
+            "Supabase apps table is missing app_store_url/play_store_url columns. "
+            "Run the ALTER TABLE section in supabase_apps_schema.sql first."
+        )
+    return str(exc)
+
+
 def _normalize_situations_df(df):
     for col in SITUATION_COLUMNS:
         if col not in df.columns:
@@ -172,7 +188,7 @@ def save_apps(df):
             client.table(APPS_TABLE).upsert(rows, on_conflict="id").execute()
         return True
     except Exception as exc:
-        _notify_error(f"Supabase app data could not be saved: {exc}")
+        _notify_error(f"Supabase app data could not be saved: {_store_url_schema_message(exc)}")
         return False
 
 
@@ -185,7 +201,7 @@ def add_app(new_app):
         client.table(APPS_TABLE).insert(_app_payload(new_app)).execute()
         return True
     except Exception as exc:
-        _notify_error(f"Supabase app could not be added: {exc}")
+        _notify_error(f"Supabase app could not be added: {_store_url_schema_message(exc)}")
         return False
 
 
@@ -201,7 +217,7 @@ def update_app(app_id, updated):
         client.table(APPS_TABLE).update(payload).eq("id", int(app_id)).execute()
         return True
     except Exception as exc:
-        _notify_error(f"Supabase app could not be updated: {exc}")
+        _notify_error(f"Supabase app could not be updated: {_store_url_schema_message(exc)}")
         return False
 
 

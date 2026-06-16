@@ -6,7 +6,8 @@ create table if not exists public.apps (
   description text not null default '',
   platform text not null default '',
   rating numeric not null default 0,
-  download_url text not null default '',
+  app_store_url text not null default '',
+  play_store_url text not null default '',
   features text not null default '',
   tips text not null default '',
   image_url text not null default '',
@@ -17,8 +18,11 @@ create table if not exists public.apps (
 );
 
 alter table public.apps
+  add column if not exists app_store_url text not null default '',
+  add column if not exists play_store_url text not null default '',
   add column if not exists guide_images text not null default '',
-  add column if not exists guide_image_captions text not null default '';
+  add column if not exists guide_image_captions text not null default '',
+  drop column if exists download_url;
 
 create or replace function public.set_updated_at()
 returns trigger

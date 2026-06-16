@@ -3,8 +3,18 @@ app_card.py
 앱 카드 UI 컴포넌트 — 즐겨찾기 토글 포함
 """
 
+from html import escape
+
 import streamlit as st
 from components.data_loader import is_favorite, toggle_favorite, is_downloaded, toggle_downloaded
+
+
+DOWNLOAD_LINK_STYLE = (
+    "background-color:#1f77ff;color:white;padding:8px 12px;"
+    "border-radius:6px;text-decoration:none;display:block;font-weight:600;"
+    "font-size:0.88rem;line-height:1;white-space:nowrap;min-width:118px;"
+    "text-align:center;box-sizing:border-box"
+)
 
 
 GUIDE_BUTTON_STYLE = """
@@ -34,10 +44,12 @@ def render_app_card(app: dict, show_favorite: bool = True, show_download_toggle:
     features = [f.strip() for f in app["features"].split("|")]
     app_id = int(app["id"])
     fav = is_favorite(app_id)
+    app_store_url = str(app.get("app_store_url", "") or "").strip()
+    play_store_url = str(app.get("play_store_url", "") or "").strip()
 
     with st.container(border=True):
         # 헤더: 이미지 or 아이콘 + 이름 + 다운로드 링크 + 다운로드 표시 버튼 + 즐겨찾기 버튼
-        col_icon, col_title, col_download_link, col_download_mark, col_fav = st.columns([1, 5, 1, 1, 1])
+        col_icon, col_title, col_download_link, col_download_mark, col_fav = st.columns([1, 3.8, 3.2, 0.8, 0.8])
         with col_icon:
             image_url = str(app.get("image_url", "") or "").strip()
             if image_url:
@@ -51,16 +63,23 @@ def render_app_card(app: dict, show_favorite: bool = True, show_download_toggle:
             st.markdown(f"### {app['name']}")
             st.caption(f"📂 {app['category']}  •  📱 {app['platform']}  •  ⭐ {app['rating']}")
         # 다운로드 링크
-        download_url = str(app.get("download_url", "") or "").strip()
         with col_download_link:
-            if download_url:
-                btn_html = (
-                    f"<a href=\"{download_url}\" target=\"_blank\" "
-                    "style=\"background-color:#1f77ff;color:white;padding:8px 12px;"
-                    "border-radius:6px;text-decoration:none;display:inline-block;font-weight:600;"
-                    "font-size:0.95rem\">Download</a>"
+            store_links = []
+            if play_store_url:
+                store_links.append(("For Android", play_store_url))
+            if app_store_url:
+                store_links.append(("For iOS", app_store_url))
+
+            if store_links:
+                links_html = "".join(
+                    f"<a href=\"{escape(url, quote=True)}\" target=\"_blank\" "
+                    f"style=\"{DOWNLOAD_LINK_STYLE}\">{escape(label)}</a>"
+                    for label, url in store_links
                 )
-                st.markdown(btn_html, unsafe_allow_html=True)
+                st.markdown(
+                    f"<div style='display:flex;flex-direction:column;gap:6px;align-items:stretch;max-width:150px'>{links_html}</div>",
+                    unsafe_allow_html=True,
+                )
             else:
                 st.markdown("<div style='color:#888; font-size:0.9rem'>No link</div>", unsafe_allow_html=True)
 
