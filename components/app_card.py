@@ -7,6 +7,25 @@ import streamlit as st
 from components.data_loader import is_favorite, toggle_favorite, is_downloaded, toggle_downloaded
 
 
+GUIDE_BUTTON_STYLE = """
+<style>
+div[data-testid="stButton"] button[kind="primary"] {
+    background-color: #1f77ff;
+    border-color: #1f77ff;
+    color: #ffffff;
+}
+div[data-testid="stButton"] button[kind="primary"]:hover {
+    background-color: #155ed1;
+    border-color: #155ed1;
+    color: #ffffff;
+}
+div[data-testid="stButton"] button[kind="primary"]:focus {
+    box-shadow: 0 0 0 0.2rem rgba(31, 119, 255, 0.25);
+}
+</style>
+"""
+
+
 def render_app_card(app: dict, show_favorite: bool = True, show_download_toggle: bool = True, show_download_remove: bool = False):
     """
     앱 1개를 카드 형태로 렌더링합니다.
@@ -65,21 +84,53 @@ def render_app_card(app: dict, show_favorite: bool = True, show_download_toggle:
         st.markdown(app["description"])
 
         # 사용 방법(가이드) 이미지가 있으면 표시 (각 이미지 아래에 캡션 표시)
-        guide_images = [s for s in str(app.get("guide_images", "") or "").split("|") if s.strip()]
-        guide_captions = [s for s in str(app.get("guide_image_captions", "") or "").split("|") if s.strip()]
+        guide_images = [s.strip() for s in str(app.get("guide_images", "") or "").split("|") if s.strip()]
+        guide_captions = [s.strip() for s in str(app.get("guide_image_captions", "") or "").split("|")]
         if guide_images:
-            st.markdown("**📖 Usage Guide (images)**")
-            cols = st.columns(min(3, len(guide_images)))
-            for i, img in enumerate(guide_images):
-                try:
-                    cols[i % 3].image(img, width=240)
-                except Exception:
-                    cols[i % 3].markdown(f"Failed to load: {img}")
-                # 캡션 표시 (있을 경우, 검정색 #000000)
-                caption = guide_captions[i] if i < len(guide_captions) else ""
-                if caption:
-                    cols[i % 3].markdown(f"<div style=\"color:#000000; font-size:0.9rem; margin-top:6px\">{caption}</div>", unsafe_allow_html=True)
+            is_open_key = f"guide_open_{app_id}"
+            index_key = f"guide_index_{app_id}"
 
+            if is_open_key not in st.session_state:
+                st.session_state[is_open_key] = False
+            if index_key not in st.session_state:
+                st.session_state[index_key] = 0
+
+            button_label = "Hide How To Use" if st.session_state[is_open_key] else "How To Use"
+            st.markdown(GUIDE_BUTTON_STYLE, unsafe_allow_html=True)
+            if st.button(button_label, key=f"guide_toggle_{app_id}", type="primary"):
+                st.session_state[is_open_key] = not st.session_state[is_open_key]
+                st.rerun()
+
+            if st.session_state[is_open_key]:
+                current_index = st.session_state[index_key] % len(guide_images)
+                current_image = guide_images[current_index]
+                current_caption = guide_captions[current_index] if current_index < len(guide_captions) else ""
+
+                st.markdown("**How To Use**")
+                prev_col, image_col, next_col = st.columns([1, 6, 1])
+
+                with prev_col:
+                    st.write("")
+                    st.write("")
+                    if st.button("<", key=f"guide_prev_{app_id}", disabled=len(guide_images) <= 1, help="Previous guide image"):
+                        st.session_state[index_key] = (current_index - 1) % len(guide_images)
+                        st.rerun()
+
+                with image_col:
+                    try:
+                        st.image(current_image, use_container_width=True)
+                    except Exception:
+                        st.warning(f"Failed to load guide image: {current_image}")
+                    if current_caption:
+                        st.caption(current_caption)
+                    st.caption(f"{current_index + 1} / {len(guide_images)}")
+
+                with next_col:
+                    st.write("")
+                    st.write("")
+                    if st.button(">", key=f"guide_next_{app_id}", disabled=len(guide_images) <= 1, help="Next guide image"):
+                        st.session_state[index_key] = (current_index + 1) % len(guide_images)
+                        st.rerun()
         # 주요 기능
         st.markdown("**✅ Key Features**")
         cols = st.columns(2)

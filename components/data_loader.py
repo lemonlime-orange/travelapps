@@ -229,7 +229,7 @@ def upload_internal_asset(uploaded_file, folder="guide-images"):
     client.storage.from_(bucket).upload(
         path=storage_path,
         file=uploaded_file.getvalue(),
-        file_options={"content-type": content_type, "upsert": "false"},
+        file_options={"content-type": content_type, "upsert": False},
     )
     return client.storage.from_(bucket).get_public_url(storage_path)
 

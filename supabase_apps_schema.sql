@@ -16,6 +16,10 @@ create table if not exists public.apps (
   updated_at timestamptz not null default now()
 );
 
+alter table public.apps
+  add column if not exists guide_images text not null default '',
+  add column if not exists guide_image_captions text not null default '';
+
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql

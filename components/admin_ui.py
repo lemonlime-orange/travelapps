@@ -18,6 +18,25 @@ from components.data_loader import (
 from components.data_loader import get_before_land_tips, update_before_land_tips
 
 
+def _split_lines_preserve_order(text):
+    return [line.strip() for line in str(text or "").splitlines()]
+
+
+def _split_pipe_preserve_order(text):
+    return [part.strip() for part in str(text or "").split("|")]
+
+
+def _join_pipe_preserve_order(values):
+    return "|".join(str(value or "").strip() for value in values)
+
+
+def _match_captions_to_images(captions, image_count):
+    captions = list(captions)
+    if len(captions) < image_count:
+        captions.extend([""] * (image_count - len(captions)))
+    return captions[:image_count]
+
+
 def render_admin_panel():
     """관리자 UI 전체를 렌더링합니다. 호출 시 Streamlit 컨텍스트 내에서 실행되어야 합니다."""
     CATEGORIES = [
@@ -118,7 +137,12 @@ def render_admin_panel():
                 tips = st.text_area("Travel Tip *", placeholder="A helpful tip for tourists...", height=80)
                 guide_uploads = st.file_uploader("Guide Images (upload files)", accept_multiple_files=True, type=["png", "jpg", "jpeg", "gif", "webp"]) 
                 guide_urls = st.text_area("Guide Image URLs (one per line)", placeholder="https://example.com/step1.png\nhttps://...", height=80)
-                guide_captions = st.text_area("Guide Image Captions (one per line, matching images)", placeholder="Step 1: Open the app\nStep 2: Tap 'Start'", height=80)
+                guide_captions = st.text_area(
+                    "Guide Image Captions (one line per image)",
+                    placeholder="Step 1: Open the app\nStep 2: Tap 'Start'",
+                    help="Captions are matched to guide images by line number. Leave a blank line if an image should have no caption.",
+                    height=80,
+                )
 
             submitted = st.form_submit_button("✅ Add App", type="primary", use_container_width=True)
 
@@ -146,12 +170,13 @@ def render_admin_panel():
 
                 # 업로드 파일 저장
                 img_paths = []
+                upload_errors = []
                 if guide_uploads:
                     for f in guide_uploads:
                         try:
                             img_paths.append(upload_internal_asset(f, "guide-images"))
                         except Exception as exc:
-                            st.error(f"Failed to upload guide image to Supabase Storage: {exc}")
+                            upload_errors.append(f"{f.name}: {exc}")
 
                 # 텍스트로 입력된 URL 추가
                 for line in (guide_urls or "").splitlines():
@@ -162,24 +187,31 @@ def render_admin_panel():
                 guide_images_value = "|".join(img_paths)
 
                 # 캡션 처리 (각 라인 하나의 캡션, 이미지 순서와 매칭)
-                captions = [line.strip() for line in (guide_captions or "").splitlines() if line.strip()]
-                guide_captions_value = "|".join(captions)
+                captions = _match_captions_to_images(_split_lines_preserve_order(guide_captions), len(img_paths))
+                guide_captions_value = _join_pipe_preserve_order(captions)
 
-                new_app = {
-                    "name": name.strip(),
-                    "category": "|".join(category),
-                    "icon": "",
-                    "image_url": image_url.strip(),
-                    "platform": platform,
-                    "rating": rating,
-                    "description": description.strip(),
-                    "download_url": download_url.strip(),
-                    "features": features,
-                    "tips": tips.strip(),
-                    "guide_images": guide_images_value,
-                    "guide_image_captions": guide_captions_value,
-                }
-                add_app(new_app)
+                if upload_errors:
+                    st.error("Guide images could not be uploaded to Supabase Storage.")
+                    for message in upload_errors:
+                        st.caption(message)
+                    st.stop()
+                else:
+                    new_app = {
+                        "name": name.strip(),
+                        "category": "|".join(category),
+                        "icon": "",
+                        "image_url": image_url.strip(),
+                        "platform": platform,
+                        "rating": rating,
+                        "description": description.strip(),
+                        "download_url": download_url.strip(),
+                        "features": features,
+                        "tips": tips.strip(),
+                        "guide_images": guide_images_value,
+                        "guide_image_captions": guide_captions_value,
+                    }
+                    if not add_app(new_app):
+                        st.stop()
                 st.success(f"🎉 **{name}** has been added successfully!")
                 st.experimental_rerun()
 
@@ -225,8 +257,8 @@ def render_admin_panel():
                 new_features_raw = st.text_area("Features (one per line)", value=features_display, height=120)
                 new_tips = st.text_area("Travel Tip", value=app["tips"], height=80)
                 # 기존 가이드 이미지 및 캡션 불러오기
-                current_imgs = [s for s in str(app.get("guide_images", "") or "").split("|") if s.strip()]
-                current_captions = [s for s in str(app.get("guide_image_captions", "") or "").split("|") if s.strip()]
+                current_imgs = [s.strip() for s in str(app.get("guide_images", "") or "").split("|") if s.strip()]
+                current_captions = _split_pipe_preserve_order(app.get("guide_image_captions", ""))
                 if current_imgs:
                     st.markdown("**Current Guide Images**")
                     cols_preview = st.columns(min(3, len(current_imgs)))
@@ -235,9 +267,17 @@ def render_admin_panel():
                             cols_preview[i % 3].image(img, width=200)
                         except Exception:
                             cols_preview[i % 3].markdown(f"Failed to load: {img}")
+                        caption = current_captions[i] if i < len(current_captions) else ""
+                        if caption:
+                            cols_preview[i % 3].caption(caption)
                 new_guide_uploads = st.file_uploader("Guide Images (upload new files to add)", accept_multiple_files=True, type=["png", "jpg", "jpeg", "gif", "webp"])                
                 new_guide_text = st.text_area("Guide Image URLs (one per line)", value="\n".join(current_imgs), height=80)
-                new_guide_captions = st.text_area("Guide Image Captions (one per line, matching images)", value="\n".join(current_captions), height=80)
+                new_guide_captions = st.text_area(
+                    "Guide Image Captions (one line per image)",
+                    value="\n".join(current_captions[:len(current_imgs)]),
+                    help="Captions are matched to guide images by line number. Leave a blank line if an image should have no caption.",
+                    height=80,
+                )
 
             save_btn = st.form_submit_button("💾 Save Changes", type="primary", use_container_width=True)
 
@@ -265,23 +305,33 @@ def render_admin_panel():
 
                 # 새로 업로드된 파일 저장 및 텍스트로 입력된 URL 합치기
                 updated_img_paths = []
-                if new_guide_uploads:
-                    for f in new_guide_uploads:
-                        try:
-                            updated_img_paths.append(upload_internal_asset(f, "guide-images"))
-                        except Exception as exc:
-                            st.error(f"Failed to upload guide image to Supabase Storage: {exc}")
-
+                upload_errors = []
                 for line in (new_guide_text or "").splitlines():
                     line = line.strip()
                     if line:
                         updated_img_paths.append(line)
 
+                if new_guide_uploads:
+                    for f in new_guide_uploads:
+                        try:
+                            updated_img_paths.append(upload_internal_asset(f, "guide-images"))
+                        except Exception as exc:
+                            upload_errors.append(f"{f.name}: {exc}")
+
                 guide_images_combined = "|".join(updated_img_paths)
 
                 # 새 캡션 처리
-                updated_captions = [line.strip() for line in (new_guide_captions or "").splitlines() if line.strip()]
-                guide_captions_combined = "|".join(updated_captions)
+                updated_captions = _match_captions_to_images(
+                    _split_lines_preserve_order(new_guide_captions),
+                    len(updated_img_paths),
+                )
+                guide_captions_combined = _join_pipe_preserve_order(updated_captions)
+
+                if upload_errors:
+                    st.error("Guide images could not be uploaded to Supabase Storage.")
+                    for message in upload_errors:
+                        st.caption(message)
+                    st.stop()
 
                 updated = {
                     "name": new_name.strip(),
@@ -297,7 +347,8 @@ def render_admin_panel():
                     "guide_images": guide_images_combined,
                     "guide_image_captions": guide_captions_combined,
                 }
-                update_app(selected_id, updated)
+                if not update_app(selected_id, updated):
+                    st.stop()
                 st.success(f"✅ **{new_name}** updated successfully!")
                 st.experimental_rerun()
 
