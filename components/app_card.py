@@ -6,7 +6,18 @@ app_card.py
 from html import escape
 
 import streamlit as st
-from components.data_loader import is_favorite, toggle_favorite, is_downloaded, toggle_downloaded
+from components.data_loader import (
+    delete_app_review,
+    get_display_rating,
+    get_app_review_summary,
+    get_app_reviews,
+    get_user_app_review,
+    is_favorite,
+    toggle_favorite,
+    is_downloaded,
+    toggle_downloaded,
+    upsert_app_review,
+)
 
 
 DOWNLOAD_LINK_STYLE = (
@@ -100,7 +111,118 @@ def _render_image_gallery_content(app_id, title, images, captions, key_prefix):
             st.rerun()
 
 
-def render_app_card(app: dict, show_favorite: bool = True, show_download_toggle: bool = True, show_download_remove: bool = False):
+def _render_downloaded_review_section(app_id):
+    avg_rating, review_count = get_app_review_summary(app_id)
+    edit_key = f"review_edit_{app_id}"
+
+    st.divider()
+    if review_count:
+        st.markdown(f"**Traveler Reviews**  ⭐ {avg_rating:.1f} ({review_count})")
+    else:
+        st.markdown("**Traveler Reviews**")
+
+    user = st.session_state.get("user")
+    if not user:
+        st.info("Log in to leave a rating and review for apps you downloaded.")
+    elif not is_downloaded(app_id):
+        st.info("Add this app to Downloaded Apps before leaving a review.")
+    else:
+        user_id = user.get("user_id", "")
+        username = user.get("username", "Traveler")
+        existing = get_user_app_review(app_id, user_id)
+        if edit_key not in st.session_state:
+            st.session_state[edit_key] = existing is None
+
+        if existing:
+            st.markdown("**My Review**")
+            st.markdown(f"Rating: {float(existing.get('rating') or 0):.1f} / 5.0")
+            st.markdown(
+                f"<div style='color:#4b5563'>{escape(str(existing.get('review') or ''))}</div>",
+                unsafe_allow_html=True,
+            )
+            edit_col, delete_col = st.columns([1, 1])
+            with edit_col:
+                edit_label = "Cancel Edit" if st.session_state[edit_key] else "Edit My Review"
+                if st.button(edit_label, key=f"edit_review_{app_id}"):
+                    st.session_state[edit_key] = not st.session_state[edit_key]
+                    st.rerun()
+            with delete_col:
+                if st.button("Delete My Review", key=f"delete_review_{app_id}"):
+                    delete_app_review(app_id, user_id)
+                    st.session_state[edit_key] = True
+                    st.success("Review deleted.")
+                    st.rerun()
+
+        if not st.session_state[edit_key]:
+            st.caption("Use Edit My Review to update your rating or review.")
+            return
+        else:
+            form_title = "Edit Review" if existing else "Write Review"
+            st.markdown(f"**{form_title}**")
+        default_rating = float(existing["rating"]) if existing else 4.0
+        default_review = existing["review"] if existing else ""
+        default_used = bool(existing["used_after_download"]) if existing else True
+
+        with st.form(key=f"review_form_{app_id}"):
+            rating = st.slider("Your rating", 0.0, 5.0, default_rating, 0.5, key=f"review_rating_{app_id}")
+            used_after_download = st.checkbox(
+                "I actually used this app after downloading it",
+                value=default_used,
+                key=f"review_used_{app_id}",
+            )
+            review = st.text_area(
+                "Your review",
+                value=default_review,
+                max_chars=700,
+                placeholder="What helped, what was confusing, and when would you recommend it?",
+                key=f"review_text_{app_id}",
+            )
+            submitted = st.form_submit_button("Save Review")
+
+        if submitted:
+            if not used_after_download:
+                st.warning("Please confirm that you actually used the app before leaving a review.")
+            elif not review.strip():
+                st.warning("Please write a short review before saving.")
+            else:
+                upsert_app_review(app_id, user_id, username, rating, review, used_after_download)
+                st.session_state[edit_key] = False
+                st.success("Review saved.")
+                st.rerun()
+
+    reviews = get_app_reviews(app_id)
+    if reviews.empty:
+        st.caption("No reviews yet.")
+        return
+
+    for review in reviews.to_dict("records"):
+        reviewer = escape(str(review.get("username") or "Traveler"))
+        text = escape(str(review.get("review") or ""))
+        rating = float(review.get("rating") or 0)
+        st.markdown(f"**{reviewer}** · ⭐ {rating:.1f}")
+        st.markdown(f"<div style='color:#4b5563'>{text}</div>", unsafe_allow_html=True)
+
+
+def _render_review_button(app_id):
+    review_key = f"review_open_{app_id}"
+    if review_key not in st.session_state:
+        st.session_state[review_key] = False
+
+    label = "Hide Review" if st.session_state[review_key] else "Review"
+    if st.button(label, key=f"review_toggle_{app_id}", type="primary"):
+        st.session_state[review_key] = not st.session_state[review_key]
+        st.rerun()
+
+    return st.session_state[review_key]
+
+
+def render_app_card(
+    app: dict,
+    show_favorite: bool = True,
+    show_download_toggle: bool = True,
+    show_download_remove: bool = False,
+    show_reviews: bool = False,
+):
     """
     앱 1개를 카드 형태로 렌더링합니다.
     show_favorite: 즐겨찾기 버튼 표시 여부
@@ -108,6 +230,7 @@ def render_app_card(app: dict, show_favorite: bool = True, show_download_toggle:
     features = [f.strip() for f in app["features"].split("|")]
     app_id = int(app["id"])
     fav = is_favorite(app_id)
+    display_rating, review_count, rating_source = get_display_rating(app_id, app["rating"])
     app_store_url = str(app.get("app_store_url", "") or "").strip()
     play_store_url = str(app.get("play_store_url", "") or "").strip()
 
@@ -125,7 +248,10 @@ def render_app_card(app: dict, show_favorite: bool = True, show_download_toggle:
                 )
         with col_title:
             st.markdown(f"### {app['name']}")
-            st.caption(f"📂 {app['category']}  •  📱 {app['platform']}  •  ⭐ {app['rating']}")
+            rating_label = f"{display_rating:.1f}"
+            if rating_source == "reviews":
+                rating_label = f"{rating_label} ({review_count} reviews)"
+            st.caption(f"📂 {app['category']}  •  📱 {app['platform']}  •  ⭐ {rating_label}")
         # 다운로드 링크
         with col_download_link:
             store_links = []
@@ -165,6 +291,9 @@ def render_app_card(app: dict, show_favorite: bool = True, show_download_toggle:
 
         # 설명
         st.markdown(app["description"])
+
+        if show_reviews and _render_review_button(app_id):
+            _render_downloaded_review_section(app_id)
 
         # 사용 방법(가이드) 이미지가 있으면 표시 (각 이미지 아래에 캡션 표시)
         in_app_images = _split_image_list(app.get("in_app_images", ""))

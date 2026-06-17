@@ -278,7 +278,13 @@ if st.session_state.page != "home" and st.session_state.page != "admin":
             st.subheader("All Apps in This Category")
             for _, row in view_df.iterrows():
                 if sel == "Downloaded Apps":
-                    render_app_card(row.to_dict(), show_favorite=True, show_download_toggle=True, show_download_remove=True)
+                    render_app_card(
+                        row.to_dict(),
+                        show_favorite=True,
+                        show_download_toggle=True,
+                        show_download_remove=True,
+                        show_reviews=True,
+                    )
                 else:
                     render_app_card(row.to_dict())
 

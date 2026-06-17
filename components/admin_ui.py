@@ -11,6 +11,7 @@ from components.data_loader import (
     load_apps, get_categories,
     add_app, update_app, delete_app,
     upload_internal_asset,
+    get_display_rating,
     check_password,
     load_situations, get_situation_categories,
     add_situation, update_situation, delete_situation,
@@ -122,6 +123,11 @@ def render_admin_panel():
             )]
 
         display = view_df.copy()
+        if not display.empty:
+            display["rating"] = display.apply(
+                lambda row: get_display_rating(row["id"], row["rating"])[0],
+                axis=1,
+            )
         st.dataframe(
             display,
             use_container_width=True,
@@ -143,7 +149,7 @@ def render_admin_panel():
                 category = st.multiselect("Categories *", CATEGORIES, default=[])
                 image_url = st.text_input("Image URL *", placeholder="https://example.com/logo.png")
                 platform = st.selectbox("Platform *", PLATFORMS)
-                rating = st.slider("Rating", 1.0, 5.0, 4.0, 0.1)
+                rating = st.slider("Rating", 0.0, 5.0, 4.0, 0.1)
 
             with col2:
                 description = st.text_area("Description *", placeholder="Short description of the app...", height=100)
@@ -277,6 +283,8 @@ def render_admin_panel():
         selected_id = app_options[selected_label]
         app = df[df["id"] == selected_id].iloc[0].to_dict()
         current_app_store_url, current_play_store_url = _initial_store_urls(app)
+        display_rating, rating_review_count, rating_source = get_display_rating(selected_id, app["rating"])
+        new_rating = float(app["rating"])
 
         st.write("")
 
@@ -296,7 +304,14 @@ def render_admin_panel():
                     PLATFORMS,
                     index=PLATFORMS.index(app["platform"]) if app["platform"] in PLATFORMS else 0,
                 )
-                new_rating = st.slider("Rating", 1.0, 5.0, float(app["rating"]), 0.1)
+                if rating_source == "reviews":
+                    st.markdown("**Rating**")
+                    st.info(
+                        f"Using review average: {display_rating:.1f} / 5.0 "
+                        f"from {rating_review_count} registered ratings."
+                    )
+                else:
+                    new_rating = st.slider("Rating", 0.0, 5.0, float(app["rating"]), 0.1)
 
             with col2:
                 new_description = st.text_area("Description", value=app["description"], height=100)

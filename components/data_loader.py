@@ -2,6 +2,7 @@ import json
 import mimetypes
 import os
 import uuid
+from datetime import datetime
 
 import pandas as pd
 
@@ -54,6 +55,18 @@ SITUATION_COLUMNS = [
 ADMIN_PASSWORD = "travel2korea"
 SETTINGS_FILENAME = "settings.json"
 SUPABASE_PAGE_SIZE = 1000
+REVIEWS_FILENAME = "app_reviews.csv"
+MIN_REVIEWS_FOR_AVERAGE_RATING = 5
+REVIEW_COLUMNS = [
+    "user_id",
+    "username",
+    "app_id",
+    "rating",
+    "review",
+    "used_after_download",
+    "created_at",
+    "updated_at",
+]
 
 
 def _path(filename):
@@ -315,7 +328,12 @@ def get_top_rated_app(df, category):
     cat_df = filter_by_category(df, category)
     if cat_df.empty:
         return None
-    top = cat_df.nlargest(1, "rating").iloc[0]
+    cat_df = cat_df.copy()
+    cat_df["display_rating"] = cat_df.apply(
+        lambda row: get_display_rating(row["id"], row["rating"])[0],
+        axis=1,
+    )
+    top = cat_df.nlargest(1, "display_rating").iloc[0]
     return top.to_dict()
 
 
@@ -368,6 +386,114 @@ def toggle_downloaded(app_id):
     else:
         dl.append(app_id)
     save_downloads(dl)
+
+
+def _empty_reviews_df():
+    return pd.DataFrame(columns=REVIEW_COLUMNS)
+
+
+def _normalize_reviews_df(df):
+    for col in REVIEW_COLUMNS:
+        if col not in df.columns:
+            df[col] = ""
+    if not df.empty:
+        df["app_id"] = pd.to_numeric(df["app_id"], errors="coerce").fillna(0).astype(int)
+        df["rating"] = pd.to_numeric(df["rating"], errors="coerce").fillna(0.0)
+        df["used_after_download"] = df["used_after_download"].astype(str).str.lower().isin(
+            ["true", "1", "yes", "y"]
+        )
+        for col in REVIEW_COLUMNS:
+            if col not in ("app_id", "rating", "used_after_download"):
+                df[col] = df[col].fillna("").astype(str)
+    return df[REVIEW_COLUMNS]
+
+
+def load_reviews():
+    p = _path(REVIEWS_FILENAME)
+    if not os.path.exists(p):
+        return _empty_reviews_df()
+    try:
+        return _normalize_reviews_df(pd.read_csv(p))
+    except Exception:
+        return _empty_reviews_df()
+
+
+def save_reviews(df):
+    normalized = _normalize_reviews_df(df)
+    normalized.to_csv(_path(REVIEWS_FILENAME), index=False)
+
+
+def get_app_reviews(app_id):
+    reviews = load_reviews()
+    if reviews.empty:
+        return reviews
+    return reviews[reviews["app_id"] == int(app_id)].sort_values("updated_at", ascending=False)
+
+
+def get_user_app_review(app_id, user_id):
+    reviews = get_app_reviews(app_id)
+    if reviews.empty:
+        return None
+    user_reviews = reviews[reviews["user_id"].astype(str) == str(user_id)]
+    if user_reviews.empty:
+        return None
+    return user_reviews.iloc[0].to_dict()
+
+
+def upsert_app_review(app_id, user_id, username, rating, review, used_after_download=True):
+    reviews = load_reviews()
+    now = datetime.utcnow().isoformat() + "Z"
+    user_id = str(user_id)
+    app_id = int(app_id)
+    rating = max(0.0, min(5.0, round(float(rating or 0) * 2) / 2))
+    mask = (reviews["app_id"] == app_id) & (reviews["user_id"].astype(str) == user_id)
+
+    row = {
+        "user_id": user_id,
+        "username": str(username or "Traveler"),
+        "app_id": app_id,
+        "rating": rating,
+        "review": str(review or "").strip(),
+        "used_after_download": bool(used_after_download),
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    if mask.any():
+        first_index = reviews[mask].index[0]
+        row["created_at"] = reviews.at[first_index, "created_at"] or now
+        for key, value in row.items():
+            reviews.at[first_index, key] = value
+    else:
+        reviews = pd.concat([reviews, pd.DataFrame([row])], ignore_index=True)
+
+    save_reviews(reviews)
+
+
+def delete_app_review(app_id, user_id):
+    reviews = load_reviews()
+    if reviews.empty:
+        return
+    mask = (reviews["app_id"] == int(app_id)) & (reviews["user_id"].astype(str) == str(user_id))
+    save_reviews(reviews[~mask].reset_index(drop=True))
+
+
+def get_app_review_summary(app_id):
+    reviews = get_app_reviews(app_id)
+    if reviews.empty:
+        return 0.0, 0
+    return float(reviews["rating"].mean()), int(len(reviews))
+
+
+def _round_rating_for_display(value):
+    return int(float(value or 0) * 10 + 0.5) / 10
+
+
+def get_display_rating(app_id, fallback_rating):
+    avg_rating, review_count = get_app_review_summary(app_id)
+    if review_count >= MIN_REVIEWS_FOR_AVERAGE_RATING:
+        return _round_rating_for_display(avg_rating), review_count, "reviews"
+    return _round_rating_for_display(fallback_rating), review_count, "admin"
 
 
 def check_password(pw):

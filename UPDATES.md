@@ -296,7 +296,7 @@
 - 요약: `Administrator Controls` 메뉴의 위치를 사이드바로 이동하고 접근 제어 및 단축키/모달 형태의 빠른 접근을 추가함
 - 커밋 제목: feat(admin): relocate Administrator Controls to sidebar and add access controls
 - 변경 내용:
-  - `components/sidebar.py`에 `Administrator Controls` 링크를 추가하여 관리자 전용 메뉴를 사이드바에 노출하도록 변경
+  - `components/sidebar.py`에 `Administrator Controls` 링크를 추가하여 관리자 전용 메뉴를 사이드바에 노출하도록 
   - `components/admin_ui.py`의 관리자 패널 렌더링을 페이지 하단에서 분리하여 사이드바 링크 클릭 시 전용 페이지 또는 모달로 열리게 변경
   - 접근 제어를 도입: `st.session_state.user`의 `is_admin` 플래그(또는 `components/data_loader.py`의 사용자 권한 검사)를 기반으로 메뉴 노출 및 접근을 제한
   - 관리자 빠른 액세스: 관리자 전용 단축키(`Ctrl+Alt+A` 기본값, 설정에서 변경 가능)를 추가하여 모달로 즉시 접근 가능하게 구현
@@ -310,3 +310,27 @@
   - `README.md`
 - 비고:
   - 기존에 페이지 하단에 항상 렌더되던 관리자 컨트롤은 제거되었으며, 사이드바에 관리자 전용 링크가 없으면 공간을 차지하지 않음
+ 
+---
+
+## 1.2.01
+- 날짜: 2026-06-17
+- 변경자: codex (lemonlime-orange)
+- 제목: 리뷰(평점/댓글) 기능 추가
+- 요약: 앱 상세에서 리뷰 작성 및 조회, 평점 집계 기능을 도입
+- 커밋 제목: feat(reviews): add reviews (rating/comment) feature
+- 변경 내용:
+  - `data/app_reviews.csv`를 사용하여 리뷰(작성자, 앱아이디, 평점, 댓글, 생성일) 저장 및 로드 기능 추가
+  - `components/data_loader.py`에 리뷰 관련 함수 추가: `load_reviews`, `save_review`, `get_reviews_for_app`, `get_average_rating_for_app`
+  - `components/app_card.py` 및 앱 상세 뷰에 리뷰 요약(평균 평점, 리뷰 수) 표시 및 '리뷰 보기/작성' 버튼 추가
+  - `components/admin_ui.py`에 리뷰 관리 탭 추가: 리뷰 목록 조회 및 삭제 기능
+  - `app.py`에 리뷰 작성 폼(평점 선택, 텍스트 입력)과 리뷰 목록 렌더링 통합
+- 관련 파일:
+  - `data/app_reviews.csv`
+  - `components/data_loader.py`
+  - `components/app_card.py`
+  - `components/admin_ui.py`
+  - `app.py`
+- 비고:
+  - 초기 `data/app_reviews.csv`가 존재하므로 빈 파일이거나 기존 데이터와 호환되도록 로더는 안전하게 파싱하도록 설계함
+  - 향후: 리뷰 신고/차단, 평점 간편 필터, 사용자별 리뷰 편집 기능 추가 고려
