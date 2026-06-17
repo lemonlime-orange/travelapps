@@ -333,4 +333,27 @@
   - `app.py`
 - 비고:
   - 초기 `data/app_reviews.csv`가 존재하므로 빈 파일이거나 기존 데이터와 호환되도록 로더는 안전하게 파싱하도록 설계함
-  - 향후: 리뷰 신고/차단, 평점 간편 필터, 사용자별 리뷰 편집 기능 추가 고려
+
+ 
+---
+
+## 1.2.02
+- 날짜: 2026-06-17
+- 변경자: codex (lemonlime-orange)
+- 제목: 리뷰 기능 개선 및 버그 수정
+- 요약: 리뷰 저장/표시 로직 안정화, 평균 평점 집계 기준 적용, 관리자 리뷰 통계 표시 추가
+- 커밋 제목: fix(reviews): stabilize review storage/display and admin stats
+- 변경 내용:
+  - 리뷰 저장/로딩의 안정성 개선 및 CSV 헤더 정합성 보강
+  - 평균 평점 표시 로직에 최소 리뷰수 기준(`MIN_REVIEWS_FOR_AVERAGE_RATING`) 적용
+  - 사용자 리뷰 CRUD(작성/수정/삭제) 흐름 검증 및 폼 유효성 강화
+  - `components/admin_ui.py`에 리뷰 통계(평균 평점, 리뷰 수) 표시 추가
+  - `components/app_card.py`의 리뷰 렌더링/메시지(로그인 안내, 사용 확인 문구) 소소한 UI 개선
+- 관련 파일:
+  - `data/app_reviews.csv`
+  - `components/data_loader.py`
+  - `components/app_card.py`
+  - `components/admin_ui.py`
+  - `app.py`
+- 비고:
+  - 향후: 리뷰 신고/필터, 편집 기록(audit) 및 페이징/정렬 옵션 추가 고려
