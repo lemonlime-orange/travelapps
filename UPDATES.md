@@ -357,3 +357,28 @@
   - `app.py`
 - 비고:
   - 향후: 리뷰 신고/필터, 편집 기록(audit) 및 페이징/정렬 옵션 추가 고려
+
+---
+
+## 1.3.01
+- 날짜: 2026-06-17
+- 변경자: codex (lemonlime-orange)
+- 제목: 사용자 및 리뷰 데이터 Supabase 이전
+- 요약: 유저 계정/즐겨찾기/다운로드와 리뷰 데이터를 Supabase로 마이그레이션하는 스크립트 및 스키마 지원을 도입
+- 커밋 제목: feat(supabase): migrate user and review data to Supabase
+- 변경 내용:
+  - `scripts/migrate_user_data_to_supabase.py` 추가/확장: `users.csv`, `user_favorites.csv`, `user_downloads.csv`, `app_reviews.csv`를 Supabase로 업서트
+  - `components/data_loader.py`에서 Supabase 클라이언트 및 설정 로딩 로직을 유지하여 앱이 Supabase 환경에서도 사용자 데이터와 리뷰 데이터를 읽을 수 있도록 준비
+  - `supabase_apps_schema.sql` 및 관련 스키마 정의 수정으로 `app_reviews`, `user_favorites`, `user_downloads`, `app_users` 테이블 구조를 지원
+  - 앱 리뷰 마이그레이션은 기존 로컬 `user_id`를 Supabase에 업서트된 사용자 ID로 매핑하여 참조 무결성을 유지
+  - `data/app_reviews.csv`를 기반으로 리뷰 평점/댓글 데이터가 Supabase `app_reviews` 테이블에 통합되도록 변환 및 업서트 처리
+- 관련 파일:
+  - `scripts/migrate_user_data_to_supabase.py`
+  - `components/data_loader.py`
+  - `supabase_apps_schema.sql`
+  - `data/app_reviews.csv`
+  - `data/users.csv`
+  - `data/user_favorites.csv`
+  - `data/user_downloads.csv`
+- 비고:
+  - 로컬 CSV가 없거나 값이 비어 있는 레코드는 안전하게 건너뛰도록 설계됨

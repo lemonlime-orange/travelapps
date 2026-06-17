@@ -4,13 +4,9 @@ app.py  ─  🏠 Main Page
 """
 
 import streamlit as st
-import os
-import csv
-import bcrypt
-from datetime import datetime
 from components.data_loader import (
     load_apps, filter_by_category, load_favorites, get_apps_by_ids, get_top_rated_app,
-    get_before_land_tips, check_password,
+    get_before_land_tips, check_password, find_user_by_username, create_user, verify_user,
 )
 from components.app_card import render_app_card
 from components.situation_helper import render_situation_helper
@@ -20,75 +16,6 @@ st.set_page_config(
     page_icon="🇰🇷",
     layout="wide",
 )
-
-
-# --------------------- Authentication helpers ---------------------
-USERS_CSV = os.path.join('data', 'users.csv')
-
-
-def load_users():
-    users = []
-    if not os.path.exists(USERS_CSV):
-        return users
-    with open(USERS_CSV, newline='', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for r in reader:
-            users.append(r)
-    return users
-
-
-def find_user_by_username(username):
-    for u in load_users():
-        if u.get('username') == username:
-            return u
-    return None
-
-
-def append_user(user):
-    fieldnames = ['user_id', 'username', 'password_hash', 'salt', 'email', 'created_at']
-    write_header = not os.path.exists(USERS_CSV) or os.path.getsize(USERS_CSV) == 0
-    with open(USERS_CSV, 'a', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        if write_header:
-            writer.writeheader()
-        writer.writerow(user)
-
-
-def create_user(username, password, email=''):
-    users = load_users()
-    max_id = 0
-    for u in users:
-        try:
-            uid = int(u.get('user_id', 0))
-            if uid > max_id:
-                max_id = uid
-        except ValueError:
-            continue
-    new_id = str(max_id + 1)
-    salt = bcrypt.gensalt()
-    pw_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
-    user = {
-        'user_id': new_id,
-        'username': username,
-        'password_hash': pw_hash.decode('utf-8'),
-        'salt': salt.decode('utf-8'),
-        'email': email,
-        'created_at': datetime.utcnow().isoformat() + 'Z' if 'datetime' in globals() else ''
-    }
-    append_user(user)
-    return user
-
-
-def verify_user(username, password):
-    u = find_user_by_username(username)
-    if not u:
-        return False, None
-    stored_hash = u.get('password_hash', '').encode('utf-8')
-    try:
-        ok = bcrypt.checkpw(password.encode('utf-8'), stored_hash)
-    except Exception:
-        ok = False
-    return ok, u
 
 
 # --------------------- Authentication UI (sidebar) -----------------
@@ -128,10 +55,15 @@ with st.sidebar:
                 elif find_user_by_username(su_user):
                     st.error('Username already exists')
                 else:
-                    user = create_user(su_user, su_pw, su_email)
-                    st.session_state.user = user
-                    st.success('Account created and signed in')
-                    st.experimental_rerun()
+                    try:
+                        user = create_user(su_user, su_pw, su_email)
+                        st.session_state.user = user
+                        st.success('Account created and signed in')
+                        st.experimental_rerun()
+                    except ValueError as exc:
+                        st.error(str(exc))
+                    except Exception as exc:
+                        st.error(f'Account could not be created: {exc}')
 
     with st.expander("Administrator Controls", expanded=False):
         st.markdown("Authorized Users Only")

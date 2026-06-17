@@ -4,6 +4,7 @@ import os
 import uuid
 from datetime import datetime
 
+import bcrypt
 import pandas as pd
 
 try:
@@ -23,6 +24,10 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 APPS_TABLE = "apps"
 SITUATIONS_TABLE = "situations"
 SETTINGS_TABLE = "app_settings"
+USERS_TABLE = "app_users"
+USER_FAVORITES_TABLE = "user_favorites"
+USER_DOWNLOADS_TABLE = "user_downloads"
+APP_REVIEWS_TABLE = "app_reviews"
 STORE_URL_COLUMNS = ("app_store_url", "play_store_url")
 APP_SCHEMA_COLUMNS = STORE_URL_COLUMNS + ("in_app_images", "in_app_image_captions")
 APP_COLUMNS = [
@@ -67,6 +72,7 @@ REVIEW_COLUMNS = [
     "created_at",
     "updated_at",
 ]
+USER_COLUMNS = ["user_id", "username", "password_hash", "salt", "email", "created_at"]
 
 
 def _path(filename):
@@ -119,6 +125,22 @@ def _empty_apps_df():
 
 def _empty_situations_df():
     return pd.DataFrame(columns=SITUATION_COLUMNS)
+
+
+def _empty_users_df():
+    return pd.DataFrame(columns=USER_COLUMNS)
+
+
+def _current_user_id():
+    if st is None:
+        return "0"
+    try:
+        user = st.session_state.get("user")
+    except Exception:
+        user = None
+    if not user:
+        return "0"
+    return str(user.get("user_id") or "0")
 
 
 def _select_all_rows(client, table_name, columns, order_column="id"):
@@ -209,6 +231,124 @@ def _situation_payload(situation):
     return payload
 
 
+def _normalize_users_df(df):
+    for col in USER_COLUMNS:
+        if col not in df.columns:
+            df[col] = ""
+    if not df.empty:
+        df["user_id"] = df["user_id"].fillna("").astype(str)
+        for col in USER_COLUMNS:
+            if col != "user_id":
+                df[col] = df[col].fillna("").astype(str)
+    return df[USER_COLUMNS]
+
+
+def _load_local_users():
+    p = _path("users.csv")
+    if not os.path.exists(p):
+        return _empty_users_df()
+    try:
+        return _normalize_users_df(pd.read_csv(p, dtype=str))
+    except Exception:
+        return _empty_users_df()
+
+
+def _save_local_users(df):
+    _normalize_users_df(df).to_csv(_path("users.csv"), index=False)
+
+
+def load_users():
+    try:
+        client = get_supabase_client(use_service_role=True)
+        rows = _select_all_rows(client, USERS_TABLE, USER_COLUMNS, order_column="created_at")
+        return [row for row in _normalize_users_df(pd.DataFrame(rows)).to_dict("records")]
+    except Exception:
+        return _load_local_users().to_dict("records")
+
+
+def find_user_by_username(username):
+    username = str(username or "").strip()
+    if not username:
+        return None
+    try:
+        client = get_supabase_client(use_service_role=True)
+        response = (
+            client.table(USERS_TABLE)
+            .select(",".join(USER_COLUMNS))
+            .eq("username", username)
+            .limit(1)
+            .execute()
+        )
+        rows = response.data or []
+        return rows[0] if rows else None
+    except Exception:
+        users = _load_local_users()
+        found = users[users["username"] == username]
+        if found.empty:
+            return None
+        return found.iloc[0].to_dict()
+
+
+def create_user(username, password, email=""):
+    username = str(username or "").strip()
+    email = str(email or "").strip()
+    if not username or not password:
+        raise ValueError("Username and password are required.")
+    if find_user_by_username(username):
+        raise ValueError("Username already exists.")
+
+    salt = bcrypt.gensalt()
+    pw_hash = bcrypt.hashpw(password.encode("utf-8"), salt)
+    now = datetime.utcnow().isoformat() + "Z"
+
+    try:
+        client = get_supabase_client(use_service_role=True)
+        response = (
+            client.table(USERS_TABLE)
+            .insert(
+                {
+                    "username": username,
+                    "password_hash": pw_hash.decode("utf-8"),
+                    "salt": salt.decode("utf-8"),
+                    "email": email,
+                    "created_at": now,
+                }
+            )
+            .execute()
+        )
+        rows = response.data or []
+        if rows:
+            return rows[0]
+        return find_user_by_username(username)
+    except Exception:
+        users = _load_local_users()
+        numeric_ids = pd.to_numeric(users["user_id"], errors="coerce") if not users.empty else pd.Series(dtype=float)
+        next_id = int(numeric_ids.max()) + 1 if not numeric_ids.empty and pd.notna(numeric_ids.max()) else 1
+        user = {
+            "user_id": str(next_id),
+            "username": username,
+            "password_hash": pw_hash.decode("utf-8"),
+            "salt": salt.decode("utf-8"),
+            "email": email,
+            "created_at": now,
+        }
+        users = pd.concat([users, pd.DataFrame([user])], ignore_index=True)
+        _save_local_users(users)
+        return user
+
+
+def verify_user(username, password):
+    user = find_user_by_username(username)
+    if not user:
+        return False, None
+    stored_hash = str(user.get("password_hash", "")).encode("utf-8")
+    try:
+        ok = bcrypt.checkpw(str(password or "").encode("utf-8"), stored_hash)
+    except Exception:
+        ok = False
+    return ok, user if ok else None
+
+
 def load_apps(use_service_role=False):
     try:
         client = get_supabase_client(use_service_role=use_service_role)
@@ -265,10 +405,9 @@ def delete_app(app_id):
     try:
         client = get_supabase_client(use_service_role=True)
         client.table(APPS_TABLE).delete().eq("id", int(app_id)).execute()
-        favs = load_favorites()
-        if app_id in favs:
-            favs.remove(app_id)
-            save_favorites(favs)
+        client.table(USER_FAVORITES_TABLE).delete().eq("app_id", int(app_id)).execute()
+        client.table(USER_DOWNLOADS_TABLE).delete().eq("app_id", int(app_id)).execute()
+        client.table(APP_REVIEWS_TABLE).delete().eq("app_id", int(app_id)).execute()
         return True
     except Exception as exc:
         _notify_error(f"Supabase app could not be deleted: {exc}")
@@ -337,14 +476,85 @@ def get_top_rated_app(df, category):
     return top.to_dict()
 
 
+def _load_local_user_app_ids(filename, user_id):
+    p = _path(filename)
+    if not os.path.exists(p):
+        return []
+    try:
+        df = pd.read_csv(p, dtype=str)
+    except Exception:
+        return []
+    if "user_id" not in df.columns or "app_id" not in df.columns:
+        return []
+    rows = df[df["user_id"].astype(str) == str(user_id)]
+    return rows["app_id"].dropna().astype(int).tolist()
+
+
+def _save_local_user_app_ids(filename, user_id, app_ids, timestamp_column):
+    p = _path(filename)
+    if os.path.exists(p):
+        try:
+            df = pd.read_csv(p, dtype=str)
+        except Exception:
+            df = pd.DataFrame(columns=["user_id", "app_id", timestamp_column])
+    else:
+        df = pd.DataFrame(columns=["user_id", "app_id", timestamp_column])
+    for col in ("user_id", "app_id", timestamp_column):
+        if col not in df.columns:
+            df[col] = ""
+    df = df[df["user_id"].astype(str) != str(user_id)]
+    now = datetime.utcnow().isoformat() + "Z"
+    rows = [{"user_id": str(user_id), "app_id": int(app_id), timestamp_column: now} for app_id in app_ids]
+    if rows:
+        df = pd.concat([df, pd.DataFrame(rows)], ignore_index=True)
+    df[["user_id", "app_id", timestamp_column]].to_csv(p, index=False)
+
+
+def _load_user_app_ids(table_name, filename, timestamp_column):
+    user_id = _current_user_id()
+    try:
+        client = get_supabase_client(use_service_role=True)
+        response = (
+            client.table(table_name)
+            .select("app_id")
+            .eq("user_id", user_id)
+            .order(timestamp_column)
+            .execute()
+        )
+        return [int(row["app_id"]) for row in response.data or []]
+    except Exception:
+        return _load_local_user_app_ids(filename, user_id)
+
+
+def _save_user_app_ids(table_name, filename, timestamp_column, app_ids):
+    user_id = _current_user_id()
+    unique_ids = []
+    for app_id in app_ids:
+        app_id = int(app_id)
+        if app_id not in unique_ids:
+            unique_ids.append(app_id)
+
+    try:
+        client = get_supabase_client(use_service_role=True)
+        client.table(table_name).delete().eq("user_id", user_id).execute()
+        now = datetime.utcnow().isoformat() + "Z"
+        rows = [
+            {"user_id": user_id, "app_id": app_id, timestamp_column: now}
+            for app_id in unique_ids
+        ]
+        if rows:
+            client.table(table_name).insert(rows).execute()
+        return
+    except Exception:
+        _save_local_user_app_ids(filename, user_id, unique_ids, timestamp_column)
+
+
 def load_favorites():
-    df = pd.read_csv(_path("favorites.csv"))
-    return df["app_id"].dropna().astype(int).tolist()
+    return _load_user_app_ids(USER_FAVORITES_TABLE, "user_favorites.csv", "added_at")
 
 
 def save_favorites(app_ids):
-    df = pd.DataFrame({"app_id": app_ids})
-    df.to_csv(_path("favorites.csv"), index=False)
+    _save_user_app_ids(USER_FAVORITES_TABLE, "user_favorites.csv", "added_at", app_ids)
 
 
 def is_favorite(app_id):
@@ -352,6 +562,7 @@ def is_favorite(app_id):
 
 
 def toggle_favorite(app_id):
+    app_id = int(app_id)
     favs = load_favorites()
     if app_id in favs:
         favs.remove(app_id)
@@ -361,18 +572,11 @@ def toggle_favorite(app_id):
 
 
 def load_downloads():
-    p = _path("downloads.csv")
-    if not os.path.exists(p):
-        return []
-    df = pd.read_csv(p)
-    if "app_id" not in df.columns:
-        return []
-    return df["app_id"].dropna().astype(int).tolist()
+    return _load_user_app_ids(USER_DOWNLOADS_TABLE, "user_downloads.csv", "downloaded_at")
 
 
 def save_downloads(app_ids):
-    df = pd.DataFrame({"app_id": app_ids})
-    df.to_csv(_path("downloads.csv"), index=False)
+    _save_user_app_ids(USER_DOWNLOADS_TABLE, "user_downloads.csv", "downloaded_at", app_ids)
 
 
 def is_downloaded(app_id):
@@ -380,6 +584,7 @@ def is_downloaded(app_id):
 
 
 def toggle_downloaded(app_id):
+    app_id = int(app_id)
     dl = load_downloads()
     if app_id in dl:
         dl.remove(app_id)
@@ -410,43 +615,83 @@ def _normalize_reviews_df(df):
 
 def load_reviews():
     p = _path(REVIEWS_FILENAME)
-    if not os.path.exists(p):
-        return _empty_reviews_df()
     try:
-        return _normalize_reviews_df(pd.read_csv(p))
+        client = get_supabase_client(use_service_role=True)
+        rows = _select_all_rows(client, APP_REVIEWS_TABLE, REVIEW_COLUMNS, order_column="updated_at")
+        return _normalize_reviews_df(pd.DataFrame(rows))
     except Exception:
-        return _empty_reviews_df()
+        if not os.path.exists(p):
+            return _empty_reviews_df()
+        try:
+            return _normalize_reviews_df(pd.read_csv(p))
+        except Exception:
+            return _empty_reviews_df()
 
 
 def save_reviews(df):
     normalized = _normalize_reviews_df(df)
-    normalized.to_csv(_path(REVIEWS_FILENAME), index=False)
+    try:
+        client = get_supabase_client(use_service_role=True)
+        client.table(APP_REVIEWS_TABLE).delete().neq("app_id", -1).execute()
+        rows = normalized.to_dict("records")
+        if rows:
+            client.table(APP_REVIEWS_TABLE).upsert(rows, on_conflict="user_id,app_id").execute()
+        return True
+    except Exception:
+        normalized.to_csv(_path(REVIEWS_FILENAME), index=False)
+        return False
 
 
 def get_app_reviews(app_id):
-    reviews = load_reviews()
-    if reviews.empty:
-        return reviews
-    return reviews[reviews["app_id"] == int(app_id)].sort_values("updated_at", ascending=False)
+    app_id = int(app_id)
+    try:
+        client = get_supabase_client(use_service_role=True)
+        response = (
+            client.table(APP_REVIEWS_TABLE)
+            .select(",".join(REVIEW_COLUMNS))
+            .eq("app_id", app_id)
+            .order("updated_at", desc=True)
+            .execute()
+        )
+        return _normalize_reviews_df(pd.DataFrame(response.data or []))
+    except Exception:
+        reviews = load_reviews()
+        if reviews.empty:
+            return reviews
+        return reviews[reviews["app_id"] == app_id].sort_values("updated_at", ascending=False)
 
 
 def get_user_app_review(app_id, user_id):
-    reviews = get_app_reviews(app_id)
-    if reviews.empty:
-        return None
-    user_reviews = reviews[reviews["user_id"].astype(str) == str(user_id)]
-    if user_reviews.empty:
-        return None
-    return user_reviews.iloc[0].to_dict()
+    try:
+        client = get_supabase_client(use_service_role=True)
+        response = (
+            client.table(APP_REVIEWS_TABLE)
+            .select(",".join(REVIEW_COLUMNS))
+            .eq("app_id", int(app_id))
+            .eq("user_id", str(user_id))
+            .limit(1)
+            .execute()
+        )
+        rows = response.data or []
+        if not rows:
+            return None
+        return _normalize_reviews_df(pd.DataFrame(rows)).iloc[0].to_dict()
+    except Exception:
+        reviews = get_app_reviews(app_id)
+        if reviews.empty:
+            return None
+        user_reviews = reviews[reviews["user_id"].astype(str) == str(user_id)]
+        if user_reviews.empty:
+            return None
+        return user_reviews.iloc[0].to_dict()
 
 
 def upsert_app_review(app_id, user_id, username, rating, review, used_after_download=True):
-    reviews = load_reviews()
     now = datetime.utcnow().isoformat() + "Z"
     user_id = str(user_id)
     app_id = int(app_id)
     rating = max(0.0, min(5.0, round(float(rating or 0) * 2) / 2))
-    mask = (reviews["app_id"] == app_id) & (reviews["user_id"].astype(str) == user_id)
+    existing = get_user_app_review(app_id, user_id)
 
     row = {
         "user_id": user_id,
@@ -458,24 +703,38 @@ def upsert_app_review(app_id, user_id, username, rating, review, used_after_down
         "created_at": now,
         "updated_at": now,
     }
+    if existing:
+        row["created_at"] = existing.get("created_at") or now
 
-    if mask.any():
-        first_index = reviews[mask].index[0]
-        row["created_at"] = reviews.at[first_index, "created_at"] or now
-        for key, value in row.items():
-            reviews.at[first_index, key] = value
-    else:
-        reviews = pd.concat([reviews, pd.DataFrame([row])], ignore_index=True)
-
-    save_reviews(reviews)
+    try:
+        client = get_supabase_client(use_service_role=True)
+        client.table(APP_REVIEWS_TABLE).upsert(row, on_conflict="user_id,app_id").execute()
+        return True
+    except Exception:
+        reviews = load_reviews()
+        mask = (reviews["app_id"] == app_id) & (reviews["user_id"].astype(str) == user_id)
+        if mask.any():
+            first_index = reviews[mask].index[0]
+            for key, value in row.items():
+                reviews.at[first_index, key] = value
+        else:
+            reviews = pd.concat([reviews, pd.DataFrame([row])], ignore_index=True)
+        save_reviews(reviews)
+        return False
 
 
 def delete_app_review(app_id, user_id):
-    reviews = load_reviews()
-    if reviews.empty:
-        return
-    mask = (reviews["app_id"] == int(app_id)) & (reviews["user_id"].astype(str) == str(user_id))
-    save_reviews(reviews[~mask].reset_index(drop=True))
+    try:
+        client = get_supabase_client(use_service_role=True)
+        client.table(APP_REVIEWS_TABLE).delete().eq("app_id", int(app_id)).eq("user_id", str(user_id)).execute()
+        return True
+    except Exception:
+        reviews = load_reviews()
+        if reviews.empty:
+            return False
+        mask = (reviews["app_id"] == int(app_id)) & (reviews["user_id"].astype(str) == str(user_id))
+        save_reviews(reviews[~mask].reset_index(drop=True))
+        return False
 
 
 def get_app_review_summary(app_id):
