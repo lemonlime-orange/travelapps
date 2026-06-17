@@ -23,6 +23,7 @@ APPS_TABLE = "apps"
 SITUATIONS_TABLE = "situations"
 SETTINGS_TABLE = "app_settings"
 STORE_URL_COLUMNS = ("app_store_url", "play_store_url")
+APP_SCHEMA_COLUMNS = STORE_URL_COLUMNS + ("in_app_images", "in_app_image_captions")
 APP_COLUMNS = [
     "id",
     "name",
@@ -36,6 +37,8 @@ APP_COLUMNS = [
     "features",
     "tips",
     "image_url",
+    "in_app_images",
+    "in_app_image_captions",
     "guide_images",
     "guide_image_captions",
 ]
@@ -119,13 +122,13 @@ def _normalize_apps_df(df):
 
 def _schema_missing_store_url_columns(exc):
     message = str(exc).lower()
-    return any(col in message for col in STORE_URL_COLUMNS)
+    return any(col in message for col in APP_SCHEMA_COLUMNS)
 
 
 def _store_url_schema_message(exc):
     if _schema_missing_store_url_columns(exc):
         return (
-            "Supabase apps table is missing app_store_url/play_store_url columns. "
+            "Supabase apps table is missing one or more app metadata columns. "
             "Run the ALTER TABLE section in supabase_apps_schema.sql first."
         )
     return str(exc)

@@ -11,6 +11,8 @@ create table if not exists public.apps (
   features text not null default '',
   tips text not null default '',
   image_url text not null default '',
+  in_app_images text not null default '',
+  in_app_image_captions text not null default '',
   guide_images text not null default '',
   guide_image_captions text not null default '',
   created_at timestamptz not null default now(),
@@ -20,6 +22,8 @@ create table if not exists public.apps (
 alter table public.apps
   add column if not exists app_store_url text not null default '',
   add column if not exists play_store_url text not null default '',
+  add column if not exists in_app_images text not null default '',
+  add column if not exists in_app_image_captions text not null default '',
   add column if not exists guide_images text not null default '',
   add column if not exists guide_image_captions text not null default '',
   drop column if exists download_url;

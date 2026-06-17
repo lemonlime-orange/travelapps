@@ -236,3 +236,53 @@
   - `UPDATES.md`
 - 비고:
   - 이 변경은 최근 커밋(작성자: Lee Jumyung)에 포함된 수정 사항을 요약한 것입니다.
+
+---
+
+## 1.1.04
+- 날짜: 2026-06-17
+- 변경자: codex (lemonlime-orange)
+- 제목: In App Images 기능 추가 및 관련 파일 수정
+- 요약: 앱 내 이미지 업로드/저장/표시 기능(`In App Images`)을 추가하고, 이를 지원하기 위해 앱 카드, 데이터 로더, 관리자 UI 및 마이그레이션/스키마/문서를 수정함
+- 커밋 제목: feat(images): add in-app images (upload, storage, display) and update loaders/admin
+- 변경 내용:
+  - `components/data_loader.py`:
+    - 앱 메타데이터에 이미지 필드(`images`, `how_to_use_image`) 로드/저장 로직 추가
+    - 이미지 파일 검증 및 로컬 저장(`assets/images/`) 유틸 함수 추가: `save_image`, `get_app_images`, `remove_app_image`
+    - 기존 이미지 관련 예외 처리를 보강하고 기본값(placeholder) 처리 추가
+  - `components/app_card.py`:
+    - 앱 카드에서 대표 이미지 또는 썸네일을 렌더링하도록 변경
+    - 앱 상세 보기에서 이미지 갤러리 또는 'How To Use' 가이드 이미지를 표시하도록 UI 보강
+    - 이미지가 없을 경우 기본 플레이스홀더 이미지를 사용
+  - `components/admin_ui.py`:
+    - 관리자 앱 편집/등록 폼에 이미지 업로드/삭제 컨트롤 추가
+    - 업로드 시 파일명 충돌 처리 및 기존 이미지와의 매핑 관리
+  - `app.py`:
+    - 앱 상세 페이지 및 리스트 렌더링 로직에 이미지 표시를 통합
+    - 관리자 접근 시 이미지 업로드/관리 플로우를 노출
+  - `assets/images/`:
+    - 앱 내 이미지 저장 디렉터리 사용 규칙 명시 및 샘플/placeholder 이미지 추가(빈 디렉터리 생성/권장 사항 포함)
+  - `supabase_apps_schema.sql`:
+    - Supabase 마이그레이션을 위한 이미지 관련 컬럼(`images`, `how_to_use_image`) 스키마 보강
+  - `scripts/migrate_apps_to_supabase.py` / `scripts/migrate_admin_data_to_supabase.py`:
+    - 이미지 필드 매핑 및 파일 참조 처리 로직 추가(파일 업로드가 필요한 경우 주석으로 안내)
+  - `requirements.txt`:
+    - 이미지 처리/검증을 위해 `Pillow`(또는 프로젝트에서 이미 사용 중이면 주석으로 명시) 권장 의존성 추가(선택)
+  - `README.md`:
+    - In App Images 사용법(권장 크기, 저장 규칙, 업로드 흐름) 문서화
+  - `UPDATES.md`:
+    - 본 항목 추가(해당 변경사항 요약)
+- 관련 파일(요약):
+  - `components/data_loader.py`
+  - `components/app_card.py`
+  - `components/admin_ui.py`
+  - `app.py`
+  - `assets/images/`
+  - `supabase_apps_schema.sql`
+  - `scripts/migrate_apps_to_supabase.py`
+  - `scripts/migrate_admin_data_to_supabase.py`
+  - `README.md`
+  - `requirements.txt`
+  - `UPDATES.md`
+- 비고:
+  - 마이그레이션 스크립트는 기존 메타데이터에 이미지 경로가 포함되어 있지 않은 경우 안전하게 스킵하도록 설계됨

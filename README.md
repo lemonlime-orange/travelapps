@@ -87,6 +87,8 @@ streamlit run 9_🔧_Admin.py
 | rating | 평점 (1.0–5.0) |
 | app_store_url | Apple App Store URL |
 | play_store_url | Google Play Store URL |
+| in_app_images | In-app screenshot/image URLs (`|` separated) |
+| in_app_image_captions | Captions for in-app images (`|` separated) |
 | features | 주요 기능(여러 항목은 `|`로 구분) |
 | tips | 간단 팁 |
 

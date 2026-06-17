@@ -147,6 +147,14 @@ def render_admin_panel():
                     height=120,
                 )
                 tips = st.text_area("Travel Tip *", placeholder="A helpful tip for tourists...", height=80)
+                in_app_uploads = st.file_uploader("In-App Images (upload files)", accept_multiple_files=True, type=["png", "jpg", "jpeg", "gif", "webp"])
+                in_app_urls = st.text_area("In-App Image URLs (one per line)", placeholder="https://example.com/screen1.png\nhttps://...", height=80)
+                in_app_captions = st.text_area(
+                    "In-App Image Captions (one line per image)",
+                    placeholder="Home screen\nSearch results",
+                    help="Captions are matched to in-app images by line number. Leave a blank line if an image should have no caption.",
+                    height=80,
+                )
                 guide_uploads = st.file_uploader("Guide Images (upload files)", accept_multiple_files=True, type=["png", "jpg", "jpeg", "gif", "webp"]) 
                 guide_urls = st.text_area("Guide Image URLs (one per line)", placeholder="https://example.com/step1.png\nhttps://...", height=80)
                 guide_captions = st.text_area(
@@ -181,8 +189,21 @@ def render_admin_panel():
                 features = "|".join(line.strip() for line in features_raw.splitlines() if line.strip())
 
                 # 업로드 파일 저장
+                in_app_paths = []
                 img_paths = []
                 upload_errors = []
+                if in_app_uploads:
+                    for f in in_app_uploads:
+                        try:
+                            in_app_paths.append(upload_internal_asset(f, "in-app-images"))
+                        except Exception as exc:
+                            upload_errors.append(f"{f.name}: {exc}")
+
+                for line in (in_app_urls or "").splitlines():
+                    line = line.strip()
+                    if line:
+                        in_app_paths.append(line)
+
                 if guide_uploads:
                     for f in guide_uploads:
                         try:
@@ -196,14 +217,17 @@ def render_admin_panel():
                     if line:
                         img_paths.append(line)
 
+                in_app_images_value = "|".join(in_app_paths)
                 guide_images_value = "|".join(img_paths)
 
                 # 캡션 처리 (각 라인 하나의 캡션, 이미지 순서와 매칭)
+                in_app_caption_rows = _match_captions_to_images(_split_lines_preserve_order(in_app_captions), len(in_app_paths))
+                in_app_captions_value = _join_pipe_preserve_order(in_app_caption_rows)
                 captions = _match_captions_to_images(_split_lines_preserve_order(guide_captions), len(img_paths))
                 guide_captions_value = _join_pipe_preserve_order(captions)
 
                 if upload_errors:
-                    st.error("Guide images could not be uploaded to Supabase Storage.")
+                    st.error("Images could not be uploaded to Supabase Storage.")
                     for message in upload_errors:
                         st.caption(message)
                     st.stop()
@@ -220,6 +244,8 @@ def render_admin_panel():
                         "play_store_url": play_store_url.strip(),
                         "features": features,
                         "tips": tips.strip(),
+                        "in_app_images": in_app_images_value,
+                        "in_app_image_captions": in_app_captions_value,
                         "guide_images": guide_images_value,
                         "guide_image_captions": guide_captions_value,
                     }
@@ -271,6 +297,27 @@ def render_admin_panel():
                 features_display = "\n".join(app["features"].split("|"))
                 new_features_raw = st.text_area("Features (one per line)", value=features_display, height=120)
                 new_tips = st.text_area("Travel Tip", value=app["tips"], height=80)
+                current_in_app_imgs = [s.strip() for s in str(app.get("in_app_images", "") or "").split("|") if s.strip()]
+                current_in_app_captions = _split_pipe_preserve_order(app.get("in_app_image_captions", ""))
+                if current_in_app_imgs:
+                    st.markdown("**Current In-App Images**")
+                    cols_preview = st.columns(min(3, len(current_in_app_imgs)))
+                    for i, img in enumerate(current_in_app_imgs):
+                        try:
+                            cols_preview[i % 3].image(img, width=200)
+                        except Exception:
+                            cols_preview[i % 3].markdown(f"Failed to load: {img}")
+                        caption = current_in_app_captions[i] if i < len(current_in_app_captions) else ""
+                        if caption:
+                            cols_preview[i % 3].caption(caption)
+                new_in_app_uploads = st.file_uploader("In-App Images (upload new files to add)", accept_multiple_files=True, type=["png", "jpg", "jpeg", "gif", "webp"])
+                new_in_app_text = st.text_area("In-App Image URLs (one per line)", value="\n".join(current_in_app_imgs), height=80)
+                new_in_app_captions = st.text_area(
+                    "In-App Image Captions (one line per image)",
+                    value="\n".join(current_in_app_captions[:len(current_in_app_imgs)]),
+                    help="Captions are matched to in-app images by line number. Leave a blank line if an image should have no caption.",
+                    height=80,
+                )
                 # 기존 가이드 이미지 및 캡션 불러오기
                 current_imgs = [s.strip() for s in str(app.get("guide_images", "") or "").split("|") if s.strip()]
                 current_captions = _split_pipe_preserve_order(app.get("guide_image_captions", ""))
@@ -319,8 +366,21 @@ def render_admin_panel():
                 new_features = "|".join(line.strip() for line in new_features_raw.splitlines() if line.strip())
 
                 # 새로 업로드된 파일 저장 및 텍스트로 입력된 URL 합치기
+                updated_in_app_paths = []
                 updated_img_paths = []
                 upload_errors = []
+                for line in (new_in_app_text or "").splitlines():
+                    line = line.strip()
+                    if line:
+                        updated_in_app_paths.append(line)
+
+                if new_in_app_uploads:
+                    for f in new_in_app_uploads:
+                        try:
+                            updated_in_app_paths.append(upload_internal_asset(f, "in-app-images"))
+                        except Exception as exc:
+                            upload_errors.append(f"{f.name}: {exc}")
+
                 for line in (new_guide_text or "").splitlines():
                     line = line.strip()
                     if line:
@@ -333,9 +393,15 @@ def render_admin_panel():
                         except Exception as exc:
                             upload_errors.append(f"{f.name}: {exc}")
 
+                in_app_images_combined = "|".join(updated_in_app_paths)
                 guide_images_combined = "|".join(updated_img_paths)
 
                 # 새 캡션 처리
+                updated_in_app_captions = _match_captions_to_images(
+                    _split_lines_preserve_order(new_in_app_captions),
+                    len(updated_in_app_paths),
+                )
+                in_app_captions_combined = _join_pipe_preserve_order(updated_in_app_captions)
                 updated_captions = _match_captions_to_images(
                     _split_lines_preserve_order(new_guide_captions),
                     len(updated_img_paths),
@@ -343,7 +409,7 @@ def render_admin_panel():
                 guide_captions_combined = _join_pipe_preserve_order(updated_captions)
 
                 if upload_errors:
-                    st.error("Guide images could not be uploaded to Supabase Storage.")
+                    st.error("Images could not be uploaded to Supabase Storage.")
                     for message in upload_errors:
                         st.caption(message)
                     st.stop()
@@ -360,6 +426,8 @@ def render_admin_panel():
                     "play_store_url": new_play_store_url.strip(),
                     "features": new_features,
                     "tips": new_tips.strip(),
+                    "in_app_images": in_app_images_combined,
+                    "in_app_image_captions": in_app_captions_combined,
                     "guide_images": guide_images_combined,
                     "guide_image_captions": guide_captions_combined,
                 }

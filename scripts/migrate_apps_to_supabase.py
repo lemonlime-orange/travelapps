@@ -23,6 +23,8 @@ APP_COLUMNS = [
     "features",
     "tips",
     "image_url",
+    "in_app_images",
+    "in_app_image_captions",
     "guide_images",
     "guide_image_captions",
 ]
@@ -81,6 +83,13 @@ def normalize_row(row, supabase):
             data["play_store_url"] = source_download_url
 
     data["image_url"] = upload_local_asset(supabase, data["image_url"], "app-images")
+    in_app_images = []
+    for item in data["in_app_images"].split("|"):
+        item = item.strip()
+        if item:
+            in_app_images.append(upload_local_asset(supabase, item, "in-app-images"))
+    data["in_app_images"] = "|".join(in_app_images)
+
     guide_images = []
     for item in data["guide_images"].split("|"):
         item = item.strip()
