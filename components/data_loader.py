@@ -53,6 +53,7 @@ SITUATION_COLUMNS = [
 
 ADMIN_PASSWORD = "travel2korea"
 SETTINGS_FILENAME = "settings.json"
+SUPABASE_PAGE_SIZE = 1000
 
 
 def _path(filename):
@@ -105,6 +106,29 @@ def _empty_apps_df():
 
 def _empty_situations_df():
     return pd.DataFrame(columns=SITUATION_COLUMNS)
+
+
+def _select_all_rows(client, table_name, columns, order_column="id"):
+    rows = []
+    start = 0
+
+    while True:
+        end = start + SUPABASE_PAGE_SIZE - 1
+        response = (
+            client.table(table_name)
+            .select(",".join(columns))
+            .order(order_column)
+            .range(start, end)
+            .execute()
+        )
+        batch = response.data or []
+        rows.extend(batch)
+
+        if len(batch) < SUPABASE_PAGE_SIZE:
+            break
+        start += SUPABASE_PAGE_SIZE
+
+    return rows
 
 
 def _normalize_apps_df(df):
@@ -172,11 +196,11 @@ def _situation_payload(situation):
     return payload
 
 
-def load_apps():
+def load_apps(use_service_role=False):
     try:
-        client = get_supabase_client()
-        response = client.table(APPS_TABLE).select(",".join(APP_COLUMNS)).order("id").execute()
-        return _normalize_apps_df(pd.DataFrame(response.data or []))
+        client = get_supabase_client(use_service_role=use_service_role)
+        rows = _select_all_rows(client, APPS_TABLE, APP_COLUMNS)
+        return _normalize_apps_df(pd.DataFrame(rows))
     except Exception as exc:
         _notify_error(f"Supabase app data could not be loaded: {exc}")
         return _empty_apps_df()
@@ -197,7 +221,7 @@ def save_apps(df):
 
 def add_app(new_app):
     try:
-        df = load_apps()
+        df = load_apps(use_service_role=True)
         new_id = int(df["id"].max()) + 1 if not df.empty else 1
         new_app["id"] = new_id
         client = get_supabase_client(use_service_role=True)

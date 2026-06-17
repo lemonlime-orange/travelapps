@@ -286,3 +286,27 @@
   - `UPDATES.md`
 - 비고:
   - 마이그레이션 스크립트는 기존 메타데이터에 이미지 경로가 포함되어 있지 않은 경우 안전하게 스킵하도록 설계됨
+
+---
+
+## 1.1.05
+- 날짜: 2026-06-17
+- 변경자: codex (lemonlime-orange)
+- 제목: Administrator Controls 위치/접근 방법 개선
+- 요약: `Administrator Controls` 메뉴의 위치를 사이드바로 이동하고 접근 제어 및 단축키/모달 형태의 빠른 접근을 추가함
+- 커밋 제목: feat(admin): relocate Administrator Controls to sidebar and add access controls
+- 변경 내용:
+  - `components/sidebar.py`에 `Administrator Controls` 링크를 추가하여 관리자 전용 메뉴를 사이드바에 노출하도록 변경
+  - `components/admin_ui.py`의 관리자 패널 렌더링을 페이지 하단에서 분리하여 사이드바 링크 클릭 시 전용 페이지 또는 모달로 열리게 변경
+  - 접근 제어를 도입: `st.session_state.user`의 `is_admin` 플래그(또는 `components/data_loader.py`의 사용자 권한 검사)를 기반으로 메뉴 노출 및 접근을 제한
+  - 관리자 빠른 액세스: 관리자 전용 단축키(`Ctrl+Alt+A` 기본값, 설정에서 변경 가능)를 추가하여 모달로 즉시 접근 가능하게 구현
+  - `app.py`에서 관리자 권한 체크 및 라우팅 통합, 비관리자 접근 시 숨김 및 예외 처리 추가
+  - 문서(README) 및 앱 내 도움말에 관리자 접근 방법(사이드바, 단축키, 권한 필요) 설명 추가
+- 관련 파일:
+  - `components/sidebar.py`
+  - `components/admin_ui.py`
+  - `app.py`
+  - `components/data_loader.py`
+  - `README.md`
+- 비고:
+  - 기존에 페이지 하단에 항상 렌더되던 관리자 컨트롤은 제거되었으며, 사이드바에 관리자 전용 링크가 없으면 공간을 차지하지 않음

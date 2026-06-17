@@ -48,6 +48,10 @@ def _match_captions_to_images(captions, image_count):
     return captions[:image_count]
 
 
+def _dataframe_height(row_count):
+    return max(240, (int(row_count) + 1) * 35 + 3)
+
+
 def render_admin_panel():
     """관리자 UI 전체를 렌더링합니다. 호출 시 Streamlit 컨텍스트 내에서 실행되어야 합니다."""
     CATEGORIES = [
@@ -95,7 +99,7 @@ def render_admin_panel():
 
     st.divider()
 
-    df = load_apps()
+    df = load_apps(use_service_role=True)
 
     tab_list, tab_add, tab_edit, tab_situation, tab_before = st.tabs(["📋 App List", "➕ Add App", "✏️ Edit / Delete", "🎯 Situation Helper", "📝 Before You Land"])
 
@@ -117,9 +121,13 @@ def render_admin_panel():
                 lambda cats: selected_cat in [c.strip() for c in cats]
             )]
 
-        display = view_df[["id", "image_url", "name", "category", "platform", "rating"]].copy()
-        display.columns = ["ID", "Image URL", "Name", "Category", "Platform", "Rating"]
-        st.dataframe(display, use_container_width=True, hide_index=True)
+        display = view_df.copy()
+        st.dataframe(
+            display,
+            use_container_width=True,
+            hide_index=True,
+            height=_dataframe_height(len(display)),
+        )
 
         st.caption("To edit or delete, go to the **Edit / Delete** tab.")
 
@@ -258,7 +266,7 @@ def render_admin_panel():
     with tab_edit:
         st.subheader("✏️ Edit or Delete an App")
 
-        df = load_apps()
+        df = load_apps(use_service_role=True)
 
         if df.empty:
             st.info("No apps are available to edit yet. Add an app or run the Supabase migration first.")

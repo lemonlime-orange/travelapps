@@ -10,7 +10,7 @@ import bcrypt
 from datetime import datetime
 from components.data_loader import (
     load_apps, filter_by_category, load_favorites, get_apps_by_ids, get_top_rated_app,
-    get_before_land_tips,
+    get_before_land_tips, check_password,
 )
 from components.app_card import render_app_card
 from components.situation_helper import render_situation_helper
@@ -133,6 +133,32 @@ with st.sidebar:
                     st.success('Account created and signed in')
                     st.experimental_rerun()
 
+    with st.expander("Administrator Controls", expanded=False):
+        st.markdown("Authorized Users Only")
+        if st.session_state.get("admin_logged_in"):
+            if st.button("Open Admin Panel", key="open_admin_sidebar"):
+                st.session_state.page = "admin"
+                st.rerun()
+            if st.session_state.get("page") == "admin":
+                if st.button("Close Admin Panel", key="close_admin_sidebar"):
+                    st.session_state.admin_logged_in = False
+                    st.session_state.page = "home"
+                    st.rerun()
+        else:
+            admin_password = st.text_input(
+                "Password",
+                type="password",
+                key="admin_sidebar_password",
+                placeholder="Enter admin password",
+            )
+            if st.button("Open Admin Panel", key="login_admin_sidebar"):
+                if check_password(admin_password):
+                    st.session_state.admin_logged_in = True
+                    st.session_state.page = "admin"
+                    st.rerun()
+                else:
+                    st.error("Incorrect password.")
+
 
 # ── 헤더 ─────────────────────────────────────────────────────
 col_flag, col_title = st.columns([1, 6])
@@ -203,8 +229,12 @@ st.caption("App data stored in Supabase · Built with Streamlit 🎈")
 
 # 관리 패널 임베드 렌더링
 if st.session_state.page == "admin":
-    from components.admin_ui import render_admin_panel
-    render_admin_panel()
+    if st.session_state.get("admin_logged_in"):
+        from components.admin_ui import render_admin_panel
+        render_admin_panel()
+    else:
+        st.session_state.page = "home"
+        st.rerun()
 
 # 상세 페이지 렌더링
 if st.session_state.page != "home" and st.session_state.page != "admin":
@@ -252,14 +282,3 @@ if st.session_state.page != "home" and st.session_state.page != "admin":
                 else:
                     render_app_card(row.to_dict())
 
-# ── 관리자 접근 (페이지 하단) ──────────────────────────────────
-st.divider()
-with st.expander("Administrator Controls", expanded=False):
-    st.markdown("Only authorized users should use these controls.")
-    col_a, col_b = st.columns([1, 3])
-    with col_a:
-        if st.button("Open Admin Panel"):
-            st.session_state.page = "admin"
-            st.rerun()
-    with col_b:
-        st.markdown("Tip: you can also run the admin page separately with `streamlit run 9_🔧_Admin.py`.")
