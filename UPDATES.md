@@ -401,3 +401,21 @@
   - `app.py`
 - 비고:
   - 추가 UI 수정 예정 (폰트 및 항목 배치)
+  
+  ---
+
+## 1.4.02
+- 날짜: 2026-06-20
+- 변경자: codex (lemonlime-orange)
+- 제목: 버튼 위치 수정 밑 섹션 재구성
+- 요약: 섹션 재구성 밑 버튼 위치/이름 수정
+- 커밋 제목: Changes to sections and small UI changes
+- 변경 내용:
+  - Situation Helper 별도 섹션으로 분리
+  - 원래 8개 항목으로 되어있던 버튼들을 Choose Topic에 5개를 묶어서 배치
+  - Essential Apps, Downloaded Apps, Favorites는 길게 배치.
+- 관련 파일:
+  - `app.py`
+  - `__pycache__\app.cpython-314.pyc`
+- 비고:
+  - 추가 UI/UA 수정 예정 (폰트 등)

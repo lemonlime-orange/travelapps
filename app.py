@@ -123,15 +123,12 @@ st.divider()
 # ── 소개 카드 그리드 ──────────────────────────────────────────
 st.subheader("📌 Navigate by Topic")
 
-pages = [
-    ("📱", "Essential Apps",   "All must-have apps in one place"),
-    ("🗺️", "Navigation",       "Maps, routes and local directions"),
-    ("🚇", "Transportation",   "Subway, taxi, KTX & more"),
-    ("🍜", "Food",             "Delivery, restaurants & dining"),
-    ("🗣", "Translation",      "Break the language barrier"),
-    ("🧳", "Etc.",             "Other useful travel utilities"),
-    ("⭐", "Favorites",        "Your saved apps"),
-    ("🎯", "Situation Helper", "Tell us your situation → get the right app"),
+topic_options = [
+    ("🗺️", "Navigation", "Maps, routes and local directions"),
+    ("🚇", "Transportation", "Subway, taxi, KTX & more"),
+    ("🍜", "Food", "Delivery, restaurants & dining"),
+    ("🗣", "Translation", "Break the language barrier"),
+    ("🧳", "Etc.", "Other useful travel utilities"),
 ]
 
 
@@ -139,21 +136,43 @@ pages = [
 if "page" not in st.session_state:
     st.session_state.page = "home"
 
-cols = st.columns(4)
-for i, (icon, name, desc) in enumerate(pages):
-    with cols[i % 4]:
-        with st.container(border=True):
-            st.markdown(f"### {icon} {name}")
+with st.container(border=True):
+    st.markdown("### 📱 Essential Apps")
+    st.caption("All must-have apps in one place")
+    if st.button("Open Essential Apps", key="open_essential_apps", use_container_width=True):
+        st.session_state.page = "Essential Apps"
+        st.rerun()
+
+with st.container(border=True):
+    st.markdown("### Choose Topic")
+    topic_cols = st.columns(2)
+    for i, (icon, name, desc) in enumerate(topic_options):
+        with topic_cols[i % 2]:
             st.caption(desc)
-            if st.button("Open", key=f"open_{i}"):
+            if st.button(f"{icon} {name}", key=f"open_topic_{name}", use_container_width=True):
                 st.session_state.page = name
                 st.rerun()
 
-# Downloaded Apps 버튼을 내비게이션 카드 아래에 별도로 추가
-with st.container():
+with st.container(border=True):
     st.markdown("### ⬇️ Downloaded Apps")
-    if st.button("Open", key="open_downloaded_special"):
+    st.caption("Apps you've marked as downloaded")
+    if st.button("Open Downloaded Apps", key="open_downloaded_special", use_container_width=True):
         st.session_state.page = "Downloaded Apps"
+        st.rerun()
+
+with st.container(border=True):
+    st.markdown("### ⭐ Favorites")
+    st.caption("Your saved apps")
+    if st.button("Open Favorites", key="open_favorites", use_container_width=True):
+        st.session_state.page = "Favorites"
+        st.rerun()
+
+st.divider()
+st.subheader("🎯 Situation Helper")
+with st.container(border=True):
+    st.caption("Tell us your situation → get the right app")
+    if st.button("Situation Categories", key="open_situation_helper", use_container_width=True):
+        st.session_state.page = "Situation Helper"
         st.rerun()
 
 st.divider()
