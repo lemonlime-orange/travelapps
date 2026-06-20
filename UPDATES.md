@@ -419,3 +419,28 @@
   - `__pycache__\app.cpython-314.pyc`
 - 비고:
   - 추가 UI/UA 수정 예정 (폰트 등)
+
+  ---
+
+## 1.4.03
+- 날짜: 2026-06-20
+- 변경자: codex (lemonlime-orange)
+- 제목: 폰트 수정
+- 요약: DoHyeon, Quicksand로 폰트 수정
+- 커밋 제목: Font Changes
+- 변경 내용:
+  - 제목/부제목 등은 DoHyeon으로 수정
+  - 제목은 font-weight를 600~700으로, 부제목은 500으로 수정
+  - 나머지 본문 내용 등은 Quicksand로 통일
+  - Quicksand는 font-weight를 400으로 통일
+  - Essential Apps, Downloaded Apps, Favorites는 길게 배치.
+- 관련 파일:
+  - `app.py`
+  - `__pycache__\app.cpython-314.pyc`
+  - `assets\fonts\DoHyeon-Regular.ttf`
+  - `assets\fonts\OFL-DoHyeon.txt`
+  - `assets\fonts\Quicksand-wght.ttf`
+  - `assets\fonts\OFL-Quicksand.txt`
+- 비고:
+  - 1차 UI/UA 수정 완료 (폰트, 섹션 분리, 버튼 배치, 제목/부제목, 로고 등)
+  

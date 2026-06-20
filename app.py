@@ -3,6 +3,9 @@ app.py  ─  🏠 Main Page
 실행: streamlit run app.py
 """
 
+import base64
+from pathlib import Path
+
 import streamlit as st
 from components.data_loader import (
     load_apps, filter_by_category, load_favorites, get_apps_by_ids, get_top_rated_app,
@@ -11,11 +14,97 @@ from components.data_loader import (
 from components.app_card import render_app_card
 from components.situation_helper import render_situation_helper
 
+
+def inject_global_font():
+    font_dir = Path(__file__).parent / "assets" / "fonts"
+    font_files = [
+        ("Quicksand", font_dir / "Quicksand-wght.ttf", "300 700"),
+        ("Do Hyeon", font_dir / "DoHyeon-Regular.ttf", "400"),
+    ]
+
+    font_faces = []
+    for font_family, font_path, font_weight in font_files:
+        if not font_path.exists():
+            continue
+        font_data = base64.b64encode(font_path.read_bytes()).decode("utf-8")
+        font_faces.append(
+            f"""
+        @font-face {{
+            font-family: '{font_family}';
+            src: url(data:font/ttf;base64,{font_data}) format('truetype');
+            font-weight: {font_weight};
+            font-style: normal;
+            font-display: swap;
+        }}
+        """
+        )
+
+    st.markdown(
+        f"""
+        <style>
+        {"".join(font_faces)}
+
+        html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"],
+        .stApp, .stMarkdown, .stButton button, .stTextInput input,
+        .stTextArea textarea, .stSelectbox, .stRadio, .stCheckbox {{
+            font-family: 'Quicksand', sans-serif !important;
+        }}
+
+        p, label, button, input, textarea {{
+            font-family: 'Quicksand', sans-serif !important;
+        }}
+
+        .material-icons,
+        .material-symbols-rounded,
+        .material-symbols-outlined,
+        .material-symbols-sharp,
+        [class*="material-icons"],
+        [class*="material-symbols"] {{
+            font-family: 'Material Symbols Rounded', 'Material Symbols Outlined',
+                'Material Icons' !important;
+            font-weight: normal !important;
+            font-style: normal !important;
+            letter-spacing: normal !important;
+            text-transform: none !important;
+            white-space: nowrap !important;
+            direction: ltr !important;
+            font-feature-settings: 'liga' !important;
+            -webkit-font-feature-settings: 'liga' !important;
+        }}
+
+        h1, h2, h3, h4, h5, h6,
+        [data-testid="stHeader"] *,
+        [data-testid="stMarkdownContainer"] h1,
+        [data-testid="stMarkdownContainer"] h2,
+        [data-testid="stMarkdownContainer"] h3,
+        [data-testid="stMarkdownContainer"] h4,
+        [data-testid="stMarkdownContainer"] h5,
+        [data-testid="stMarkdownContainer"] h6 {{
+            font-family: 'Do Hyeon', sans-serif !important;
+            font-weight: 700 !important;
+        }}
+
+        .hero-subtitle {{
+            font-family: 'Do Hyeon', sans-serif !important;
+            font-weight: 500 !important;
+            font-size: calc(1.08rem - 1.5pt);
+        }}
+
+        [data-testid="stAppViewContainer"] div[data-testid="stExpander"] summary p {{
+            font-weight: 600 !important;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
 st.set_page_config(
     page_title="Korea Travel Apps",
     page_icon="assets/images/travel_app_logo.png",
     layout="wide",
 )
+
+inject_global_font()
 
 
 # --------------------- Authentication UI (sidebar) -----------------
@@ -98,7 +187,14 @@ with col_flag:
     st.image("assets/images/travel_app_logo.png", width=96)
 with col_title:
     st.title("Korea Travel App Guide")
-    st.markdown("**Not sure what apps you need?** — Just look here for the best apps for each situation.")
+    st.markdown(
+        """
+        <div class="hero-subtitle">
+            Not sure what apps you need? — Just look here for the best apps for each situation.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 st.divider()
 
