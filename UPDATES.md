@@ -382,3 +382,22 @@
   - `data/user_downloads.csv`
 - 비고:
   - 로컬 CSV가 없거나 값이 비어 있는 레코드는 안전하게 건너뛰도록 설계됨
+
+  ---
+
+## 1.4.01
+- 날짜: 2026-06-20
+- 변경자: codex (lemonlime-orange)
+- 제목: 제목 수정 및 로고 변경
+- 요약: 부제목 수정 및 로고 수정
+- 커밋 제목: Sub-Title Change with Logo Update
+- 변경 내용:
+  - 부제목 Not sure what apps you need? — Just look here for the best apps for each situation. 로 수정
+  - 로고 Travel과 App의 컨셉을 담을 수 있도록 수정
+- 관련 파일:
+  - `assets\images\travel_app_logo.png`
+  - `components\__pycache__\app_card.cpython-314.pyc`
+  - `components\sidebar.py`
+  - `app.py`
+- 비고:
+  - 추가 UI 수정 예정 (폰트 및 항목 배치)

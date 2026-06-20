@@ -13,7 +13,7 @@ from components.situation_helper import render_situation_helper
 
 st.set_page_config(
     page_title="Korea Travel Apps",
-    page_icon="🇰🇷",
+    page_icon="assets/images/travel_app_logo.png",
     layout="wide",
 )
 
@@ -95,10 +95,10 @@ with st.sidebar:
 # ── 헤더 ─────────────────────────────────────────────────────
 col_flag, col_title = st.columns([1, 6])
 with col_flag:
-    st.markdown("<div style='font-size:5rem; text-align:center'>🇰🇷</div>", unsafe_allow_html=True)
+    st.image("assets/images/travel_app_logo.png", width=96)
 with col_title:
     st.title("Korea Travel App Guide")
-    st.markdown("**Your digital companion for South Korea** — curated apps that locals actually use.")
+    st.markdown("**Not sure what apps you need?** — Just look here for the best apps for each situation.")
 
 st.divider()
 

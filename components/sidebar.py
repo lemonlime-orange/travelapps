@@ -12,8 +12,8 @@ def render_sidebar(categories: list) -> dict:
     반환값: {"category": str, "search": str}
     """
     with st.sidebar:
-        st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Flag_of_South_Korea.svg/320px-Flag_of_South_Korea.svg.png", width=80)
-        st.title("🇰🇷 Korea Travel Apps")
+        st.image("assets/images/travel_app_logo.png", width=80)
+        st.title("Korea Travel Apps")
         st.caption("Your digital guide to South Korea")
         st.divider()
 
