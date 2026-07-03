@@ -61,7 +61,7 @@ def render_admin_panel():
         "Transportation",
         "Food",
         "Translation",
-        "Etc.",
+        "etc.",
         "Favorites",
         "Situation Helper",
     ]

@@ -444,3 +444,17 @@
 - 비고:
   - 1차 UI/UA 수정 완료 (폰트, 섹션 분리, 버튼 배치, 제목/부제목, 로고 등)
   
+## 1.4.04
+- 날짜: 2026-06-20
+- 변경자: codex (lemonlime-orange)
+- 제목: Minor fixes
+- 요약: Minor fixes
+- 커밋 제목: Minor fixes
+- 변경 내용:
+  - Catagories에서 Tips 분류를 etc. 으로 명칭을 바꿈
+  - Supabase에서도 같은 수정사항 적용
+- 관련 파일:
+  - `admin_ui.py`
+  - `apps.csv`
+- 비고:
+
