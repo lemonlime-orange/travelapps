@@ -439,7 +439,7 @@ def render_app_card(
                 st.image(image_url, width=100, clamp=True)
             else:
                 st.markdown(
-                    f"<div style='font-size:2.2rem; text-align:center; padding-top:4px'>{app.get('icon', '')}</div>",
+                    f"<div style='font-size:2.2rem; text-align:center; padding-top:4px'>{app.get('app icon', app.get('icon', ''))}</div>",
                     unsafe_allow_html=True,
                 )
         with col_title:
@@ -447,7 +447,16 @@ def render_app_card(
             rating_label = f"{display_rating:.1f}"
             if rating_source == "reviews":
                 rating_label = f"{rating_label} ({review_count} reviews)"
-            st.caption(f"📂 {app['category']}  •  📱 {app['platform']}  •  ⭐ {rating_label}")
+            meta_parts = []
+            developer = str(app.get("developer", "") or "").strip()
+            if developer:
+                meta_parts.append(f"🏢 {developer}")
+            meta_parts.extend([
+                f"📂 {app['category']}",
+                f"📱 {app['platform']}",
+                f"⭐ {rating_label}",
+            ])
+            st.caption("  •  ".join(meta_parts))
         # 다운로드 링크
         with col_download_link:
             store_links = []

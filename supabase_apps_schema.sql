@@ -2,24 +2,100 @@ create table if not exists public.apps (
   id integer primary key,
   name text not null,
   category text not null default '',
-  icon text not null default '',
+  developer text not null default '',
   description text not null default '',
   platform text not null default '',
   rating numeric not null default 0,
-  app_store_url text not null default '',
-  play_store_url text not null default '',
+  downloads text not null default '',
   features text not null default '',
   tips text not null default '',
+  "app icon" text not null default '',
   image_url text not null default '',
-  in_app_images text not null default '',
-  in_app_image_captions text not null default '',
   guide_images text not null default '',
   guide_image_captions text not null default '',
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  app_store_url text not null default '',
+  play_store_url text not null default '',
+  in_app_images text not null default '',
+  in_app_image_captions text not null default ''
 );
 
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'apps'
+      and column_name = 'icon'
+  ) and exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'apps'
+      and column_name = 'app icon'
+  ) then
+    update public.apps
+    set "app icon" = icon
+    where coalesce("app icon", '') = ''
+      and coalesce(icon, '') <> '';
+    alter table public.apps drop column icon;
+  elsif exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'apps'
+      and column_name = 'icon'
+  ) and not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'apps'
+      and column_name = 'app icon'
+  ) then
+    alter table public.apps rename column icon to "app icon";
+  end if;
+
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'apps'
+      and column_name = 'in_app_imges'
+  ) and exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'apps'
+      and column_name = 'in_app_images'
+  ) then
+    update public.apps
+    set in_app_images = in_app_imges
+    where coalesce(in_app_images, '') = ''
+      and coalesce(in_app_imges, '') <> '';
+    alter table public.apps drop column in_app_imges;
+  elsif exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'apps'
+      and column_name = 'in_app_imges'
+  ) and not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'apps'
+      and column_name = 'in_app_images'
+  ) then
+    alter table public.apps rename column in_app_imges to in_app_images;
+  end if;
+end $$;
+
 alter table public.apps
+  add column if not exists developer text not null default '',
+  add column if not exists downloads text not null default '',
+  add column if not exists "app icon" text not null default '',
   add column if not exists app_store_url text not null default '',
   add column if not exists play_store_url text not null default '',
   add column if not exists in_app_images text not null default '',

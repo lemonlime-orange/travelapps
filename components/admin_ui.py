@@ -249,7 +249,9 @@ def render_admin_panel():
                     new_app = {
                         "name": name.strip(),
                         "category": "|".join(category),
-                        "icon": "",
+                        "developer": "",
+                        "downloads": "",
+                        "app icon": "",
                         "image_url": image_url.strip(),
                         "platform": platform,
                         "rating": rating,
@@ -440,7 +442,9 @@ def render_admin_panel():
                 updated = {
                     "name": new_name.strip(),
                     "category": "|".join(new_category),
-                    "icon": app.get("icon", ""),
+                    "developer": app.get("developer", ""),
+                    "downloads": app.get("downloads", ""),
+                    "app icon": app.get("app icon", app.get("icon", "")),
                     "image_url": new_image_url.strip(),
                     "platform": new_platform,
                     "rating": new_rating,

@@ -29,24 +29,32 @@ USER_FAVORITES_TABLE = "user_favorites"
 USER_DOWNLOADS_TABLE = "user_downloads"
 APP_REVIEWS_TABLE = "app_reviews"
 STORE_URL_COLUMNS = ("app_store_url", "play_store_url")
-APP_SCHEMA_COLUMNS = STORE_URL_COLUMNS + ("in_app_images", "in_app_image_captions")
+APP_SCHEMA_COLUMNS = (
+    "developer",
+    "downloads",
+    "app icon",
+    "in_app_images",
+    "in_app_image_captions",
+) + STORE_URL_COLUMNS
 APP_COLUMNS = [
     "id",
     "name",
     "category",
-    "icon",
+    "developer",
     "description",
     "platform",
     "rating",
-    "app_store_url",
-    "play_store_url",
+    "downloads",
     "features",
     "tips",
+    "app icon",
     "image_url",
-    "in_app_images",
-    "in_app_image_captions",
     "guide_images",
     "guide_image_captions",
+    "app_store_url",
+    "play_store_url",
+    "in_app_images",
+    "in_app_image_captions",
 ]
 SITUATION_COLUMNS = [
     "id",
@@ -146,12 +154,13 @@ def _current_user_id():
 def _select_all_rows(client, table_name, columns, order_column="id"):
     rows = []
     start = 0
+    select_columns = ",".join(_quote_select_column(col) for col in columns)
 
     while True:
         end = start + SUPABASE_PAGE_SIZE - 1
         response = (
             client.table(table_name)
-            .select(",".join(columns))
+            .select(select_columns)
             .order(order_column)
             .range(start, end)
             .execute()
@@ -166,7 +175,21 @@ def _select_all_rows(client, table_name, columns, order_column="id"):
     return rows
 
 
+def _quote_select_column(column):
+    return f'"{column}"' if " " in column else column
+
+
 def _normalize_apps_df(df):
+    if "app icon" not in df.columns and "icon" in df.columns:
+        df["app icon"] = df["icon"]
+    elif "app icon" in df.columns and "icon" in df.columns:
+        empty_app_icon = df["app icon"].isna() | (df["app icon"].astype(str).str.strip() == "")
+        df.loc[empty_app_icon, "app icon"] = df.loc[empty_app_icon, "icon"]
+    if "in_app_images" not in df.columns and "in_app_imges" in df.columns:
+        df["in_app_images"] = df["in_app_imges"]
+    elif "in_app_images" in df.columns and "in_app_imges" in df.columns:
+        empty_in_app_images = df["in_app_images"].isna() | (df["in_app_images"].astype(str).str.strip() == "")
+        df.loc[empty_in_app_images, "in_app_images"] = df.loc[empty_in_app_images, "in_app_imges"]
     for col in APP_COLUMNS:
         if col not in df.columns:
             df[col] = 0 if col == "rating" else ""
@@ -208,7 +231,12 @@ def _normalize_situations_df(df):
 def _app_payload(app):
     payload = {}
     for col in APP_COLUMNS:
-        value = app.get(col, 0 if col in ("id", "rating") else "")
+        if col == "app icon":
+            value = app.get("app icon", app.get("icon", ""))
+        elif col == "in_app_images":
+            value = app.get("in_app_images", app.get("in_app_imges", ""))
+        else:
+            value = app.get(col, 0 if col in ("id", "rating") else "")
         if col == "id":
             value = int(value)
         elif col == "rating":
@@ -274,7 +302,7 @@ def find_user_by_username(username):
         client = get_supabase_client(use_service_role=True)
         response = (
             client.table(USERS_TABLE)
-            .select(",".join(USER_COLUMNS))
+            .select(",".join(_quote_select_column(col) for col in USER_COLUMNS))
             .eq("username", username)
             .limit(1)
             .execute()

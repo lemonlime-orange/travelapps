@@ -14,19 +14,21 @@ APP_COLUMNS = [
     "id",
     "name",
     "category",
-    "icon",
+    "developer",
     "description",
     "platform",
     "rating",
-    "app_store_url",
-    "play_store_url",
+    "downloads",
     "features",
     "tips",
+    "app icon",
     "image_url",
-    "in_app_images",
-    "in_app_image_captions",
     "guide_images",
     "guide_image_captions",
+    "app_store_url",
+    "play_store_url",
+    "in_app_images",
+    "in_app_image_captions",
 ]
 
 
@@ -67,6 +69,10 @@ def normalize_row(row, supabase):
     data = {}
     for col in APP_COLUMNS:
         data[col] = row.get(col, "" if col not in ("id", "rating") else 0)
+    if pd.isna(data["app icon"]) or not str(data["app icon"]).strip():
+        data["app icon"] = row.get("icon", "")
+    if pd.isna(data["in_app_images"]) or not str(data["in_app_images"]).strip():
+        data["in_app_images"] = row.get("in_app_imges", "")
     source_download_url = row.get("download_url", "")
 
     data["id"] = int(data["id"])

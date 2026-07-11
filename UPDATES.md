@@ -444,6 +444,8 @@
 - 비고:
   - 1차 UI/UA 수정 완료 (폰트, 섹션 분리, 버튼 배치, 제목/부제목, 로고 등)
   
+ ---
+
 ## 1.4.04
 - 날짜: 2026-06-20
 - 변경자: codex (lemonlime-orange)
@@ -458,3 +460,26 @@
   - `apps.csv`
 - 비고:
 
+ ---
+## 1.4.05
+- 날짜: 2026-07-10
+- 변경자: codex (lemonlime-orange)
+- 제목: Minor Data Form Edits
+- 요약: Added 'Developers' to app information
+- 커밋 제목: Data Form Edit
+- 변경 내용:
+  - Developer 항목을 앱 정보에 추가
+  - Supabase에서도 같은 수정사항 적용
+  - 추후 계획되어 있는 앱 정보 대량 수정을 위해 Supabase Table 일부 수정
+- 관련 파일:
+  - `admin_ui.py`
+  - `app_card.csv`
+  - `data_loader.py`
+  - `migrate_apps_to_supabase.py`
+  - `admin_ui.cpython-314.pyc`
+  - `app_card.cpython-314.pyc`
+  - `data_loader.cpython-314.pyc`
+  - `supabase_apps_schema.sql`
+- 비고: 앱 정보 대량 수정 추후 계획되어 있음
+
+---
