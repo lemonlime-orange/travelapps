@@ -130,6 +130,36 @@ on public.apps
 for select
 using (true);
 
+-- Essential Apps membership is kept separately from general app categories.
+create table if not exists public.essential_apps (
+  app_id integer primary key references public.apps(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+-- Preserve existing Essential Apps selections when this schema is first applied.
+insert into public.essential_apps (app_id)
+select id
+from public.apps
+where 'Essential Apps' = any (string_to_array(category, '|'))
+on conflict (app_id) do nothing;
+
+-- Essential Apps is no longer a general category.
+update public.apps
+set category = array_to_string(
+  array_remove(string_to_array(category, '|'), 'Essential Apps'),
+  '|'
+)
+where 'Essential Apps' = any (string_to_array(category, '|'));
+
+alter table public.essential_apps enable row level security;
+
+drop policy if exists "Allow public essential app reads" on public.essential_apps;
+
+create policy "Allow public essential app reads"
+on public.essential_apps
+for select
+using (true);
+
 create table if not exists public.situations (
   id integer primary key,
   situation text not null default '',

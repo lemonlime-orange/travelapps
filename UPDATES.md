@@ -508,4 +508,26 @@
   - `users.csv`
 - 비고: 앱 정보 대량 수정 추후 계획되어 있음
 
+ ---
+## 1.5.02
+- 날짜: 2026-07-12
+- 변경자: codex (lemonlime-orange)
+- 제목: Changes to Essential Apps
+- 요약: Essential App Information is Saved in a Different Way
+- 커밋 제목: Essential App Changes
+- 변경 내용:
+  - Essential App는 원래 Category를 통해 설정하는 형태였음
+  - essential_apps라는 새 Supabase 테이블 생성
+  - app_id와 created_at 정보 포함
+  - apps.csv에서 정보 가져옴
+  - 체크박스로 추가할 수 있게 함
+  - 공개되서는 안되는 정보가 푸시되고 있어서, 가정보로 수정
+- 관련 파일:
+  - `app.py`
+  - `admin_ui.py`
+  - `data_loader.py`
+  - `secrets.example.toml`
+  - `supabase_apps_schema.sql`
+- 비고: 
+
 ---

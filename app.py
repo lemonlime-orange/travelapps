@@ -10,6 +10,7 @@ import streamlit as st
 from components.data_loader import (
     load_apps, filter_by_category, load_favorites, get_apps_by_ids, get_top_rated_app,
     get_before_land_tips, check_password, find_user_by_username, create_user, verify_user,
+    load_essential_app_ids,
 )
 from components.app_card import render_app_card
 from components.situation_helper import render_situation_helper
@@ -307,6 +308,8 @@ if st.session_state.page != "home" and st.session_state.page != "admin":
         render_situation_helper()
     else:
         df = load_apps()
+        if sel == "Essential Apps":
+            df = get_apps_by_ids(df, load_essential_app_ids())
         top_app_id = None
         
         # 최고 별점 앱 표시 (Favorites, Downloaded Apps, Situation Helper 제외)
@@ -325,6 +328,8 @@ if st.session_state.page != "home" and st.session_state.page != "admin":
             from components.data_loader import load_downloads
             dl_ids = load_downloads()
             view_df = get_apps_by_ids(df, dl_ids)
+        elif sel == "Essential Apps":
+            view_df = df
         else:
             view_df = filter_by_category(df, sel)
 

@@ -10,6 +10,7 @@ import streamlit as st
 from components.data_loader import (
     load_apps, get_categories,
     add_app, update_app, delete_app,
+    load_essential_app_ids, set_essential_app,
     upload_internal_asset,
     get_display_rating,
     check_password,
@@ -56,7 +57,6 @@ def _dataframe_height(row_count):
 def render_admin_panel():
     """관리자 UI 전체를 렌더링합니다. 호출 시 Streamlit 컨텍스트 내에서 실행되어야 합니다."""
     CATEGORIES = [
-        "Essential Apps",
         "Navigation",
         "Transportation",
         "Food",
@@ -147,6 +147,7 @@ def render_admin_panel():
             with col1:
                 name = st.text_input("App Name *", placeholder="e.g. Kakao T")
                 category = st.multiselect("Categories *", CATEGORIES, default=[])
+                is_essential = st.checkbox("Show in Essential Apps")
                 image_url = st.text_input("Image URL *", placeholder="https://example.com/logo.png")
                 platform = st.selectbox("Platform *", PLATFORMS)
                 rating = st.slider("Rating", 0.0, 5.0, 4.0, 0.1)
@@ -265,7 +266,10 @@ def render_admin_panel():
                         "guide_images": guide_images_value,
                         "guide_image_captions": guide_captions_value,
                     }
-                    if not add_app(new_app):
+                    new_app_id = add_app(new_app)
+                    if not new_app_id:
+                        st.stop()
+                    if not set_essential_app(new_app_id, is_essential):
                         st.stop()
                 st.success(f"🎉 **{name}** has been added successfully!")
                 st.experimental_rerun()
@@ -284,6 +288,7 @@ def render_admin_panel():
         selected_label = st.selectbox("Select an app to edit", list(app_options.keys()), key="edit_select")
         selected_id = app_options[selected_label]
         app = df[df["id"] == selected_id].iloc[0].to_dict()
+        essential_ids = set(load_essential_app_ids(use_service_role=True))
         current_app_store_url, current_play_store_url = _initial_store_urls(app)
         display_rating, rating_review_count, rating_source = get_display_rating(selected_id, app["rating"])
         new_rating = float(app["rating"])
@@ -300,6 +305,7 @@ def render_admin_panel():
                 new_name = st.text_input("App Name", value=app["name"])
                 current_cats = [c.strip() for c in str(app.get("category", "")).split("|") if c.strip()]
                 new_category = st.multiselect("Categories", CATEGORIES, default=current_cats)
+                new_is_essential = st.checkbox("Show in Essential Apps", value=int(selected_id) in essential_ids)
                 new_image_url = st.text_input("Image URL", value=app.get("image_url", ""))
                 new_platform = st.selectbox(
                     "Platform",
@@ -459,6 +465,8 @@ def render_admin_panel():
                     "guide_image_captions": guide_captions_combined,
                 }
                 if not update_app(selected_id, updated):
+                    st.stop()
+                if not set_essential_app(selected_id, new_is_essential):
                     st.stop()
                 st.success(f"✅ **{new_name}** updated successfully!")
                 st.experimental_rerun()

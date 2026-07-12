@@ -28,6 +28,7 @@ USERS_TABLE = "app_users"
 USER_FAVORITES_TABLE = "user_favorites"
 USER_DOWNLOADS_TABLE = "user_downloads"
 APP_REVIEWS_TABLE = "app_reviews"
+ESSENTIAL_APPS_TABLE = "essential_apps"
 STORE_URL_COLUMNS = ("app_store_url", "play_store_url")
 APP_SCHEMA_COLUMNS = (
     "developer",
@@ -419,9 +420,35 @@ def add_app(new_app):
         new_app["id"] = new_id
         client = get_supabase_client(use_service_role=True)
         client.table(APPS_TABLE).insert(_app_payload(new_app)).execute()
-        return True
+        return new_id
     except Exception as exc:
         _notify_error(f"Supabase app could not be added: {_store_url_schema_message(exc)}")
+        return False
+
+
+def load_essential_app_ids(use_service_role=False):
+    """Return app IDs configured for the Essential Apps page."""
+    try:
+        client = get_supabase_client(use_service_role=use_service_role)
+        response = client.table(ESSENTIAL_APPS_TABLE).select("app_id").order("app_id").execute()
+        return [int(row["app_id"]) for row in (response.data or [])]
+    except Exception as exc:
+        _notify_error(f"Essential Apps could not be loaded: {exc}")
+        return []
+
+
+def set_essential_app(app_id, is_essential):
+    """Add or remove an app from the Essential Apps mapping table."""
+    try:
+        client = get_supabase_client(use_service_role=True)
+        query = client.table(ESSENTIAL_APPS_TABLE)
+        if is_essential:
+            query.upsert({"app_id": int(app_id)}, on_conflict="app_id").execute()
+        else:
+            query.delete().eq("app_id", int(app_id)).execute()
+        return True
+    except Exception as exc:
+        _notify_error(f"Essential Apps could not be updated: {exc}")
         return False
 
 
