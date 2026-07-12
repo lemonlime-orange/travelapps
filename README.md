@@ -1,163 +1,190 @@
-# Korea Travel Apps Guide (한국어)
+# Korea Travel Apps Guide
 
-Streamlit 기반 대한민국 여행자를 위한 앱 카탈로그 및 관리자 도구 모음
+한국 방문자가 상황과 주제에 맞는 필수 여행 앱을 빠르게 찾을 수 있도록 만든 Streamlit 기반 웹 앱입니다. 앱 정보와 사용자 데이터는 Supabase에 저장하며, 관리자는 별도의 관리 화면에서 앱과 추천 정보를 관리할 수 있습니다.
 
-목표: 한국 방문객이 여행 중 유용한 앱을 빠르게 찾고 관리할 수 있도록 돕습니다.
+## 주요 기능
 
----
+- 주제별 여행 앱 탐색
+- 개발자가 직접 테스트 해 추천하는 `Essential Apps`
+- 상황별 앱/대응 방안을 안내하는 `Situation Helper`
+- 앱 상세 정보, 개발사, 주요 기능, 팁, 스토어 링크 등 제공
+- 사용 방법 이미지와 In-App 이미지 갤러리
+- 회원가입 및 로그인 기능
+- 로그인 사용자별 Favorites와 Downloaded Apps 저장
+- 다운로드한 앱에 대한 별점 및 리뷰 작성
+- 관리자 화면에서 앱, Essential Apps, 상황별 추천, 리뷰 및 안내 문구 관리
 
-## 핵심 변경사항 (이 업데이트)
-- 문서 구조 정리: 설치·실행·기여 가이드 추가
-- 데이터 스키마 및 폴더 구조 명확화
-- 문제 해결(트러블슈팅)과 연락처 섹션 추가
+## 기술 스택
 
----
+- Python 3.9+
+- Streamlit
+- pandas
+- Supabase (Database, Storage)
+- bcrypt
 
-## 목차
+## 설치 및 실행
 
-1. 프로젝트 개요
-2. 주요 기능
-3. 빠른 시작
-4. 데이터 스키마
-5. 폴더 구조
-6. 관리자 접근
-7. 기여 방법
-8. 문제 해결
-9. 라이선스 및 연락처
+### 1. 저장소와 가상환경 준비
 
----
+```bash
+python -m venv .venv
+```
 
-## 1) 프로젝트 개요
+Windows PowerShell:
 
-이 저장소는 한국 여행자를 위한 추천 모바일/웹 앱을 카테고리별로 보여주는 Streamlit 웹앱입니다. 앱 목록은 CSV로 관리되며, 관리자 UI로 앱을 추가·수정·삭제할 수 있습니다.
+```powershell
+.venv\Scripts\Activate.ps1
+```
 
----
-
-## 2) 주요 기능
-
-- 카테고리별 앱 브라우징 (카테고리 복수 선택 가능, `|` 구분)
-- 카테고리별 상단에 `Top Rated` 앱 강조
-- 즐겨찾기(Favorites) 관리
-- 상황별 추천 도우미(Situation Helper)
-- 관리자 UI를 통해 앱 CRUD 지원
-
----
-
-## 3) 빠른 시작
-
-### 요구사항
-
-- Python 3.9+ 권장
-- `requirements.txt`에 필요한 패키지 목록 포함
-
-### 설치
+### 2. 패키지 설치
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 실행 (개발용)
+### 3. Supabase 설정
+
+Supabase SQL Editor에서 [`supabase_apps_schema.sql`](supabase_apps_schema.sql)을 실행해 필요한 테이블과 정책을 생성합니다.
+
+그다음 `.streamlit/secrets.example.toml`을 참고하여 `.streamlit/secrets.toml`을 만듭니다.
+
+```toml
+SUPABASE_URL = "https://your-project.supabase.co"
+SUPABASE_ANON_KEY = "your-anon-key"
+SUPABASE_SERVICE_ROLE_KEY = "your-service-role-key"
+SUPABASE_BUCKET = "internal-assets"
+```
+
+`SUPABASE_SERVICE_ROLE_KEY`는 관리자 작업에 사용되므로 Git에 커밋하거나 외부에 공개하지 마세요. 이미지 업로드를 사용하려면 `SUPABASE_BUCKET`에 지정한 Storage 버킷도 준비해야 합니다.
+
+### 4. 앱 실행
 
 ```bash
 streamlit run app.py
 ```
 
-관리자 패널만 실행하려면:
-
-```bash
-streamlit run 9_🔧_Admin.py
-```
-
-브라우저 기본 주소: `http://localhost:8501`
-
----
-
-## 4) 데이터 스키마 (`data/apps.csv`)
-
-주요 컬럼(예시):
-
-| 컬럼 | 설명 |
-|------|------|
-| id | 고유 ID (정수) |
-| name | 앱 이름 |
-| category | 카테고리(복수, `|` 구분) |
-| icon | 이모지(옵션) |
-| image_url | 로고/이미지 URL 또는 상대경로(옵션) |
-| platform | 지원 플랫폼 (예: iOS, Android) |
-| rating | 평점 (1.0–5.0) |
-| app_store_url | Apple App Store URL |
-| play_store_url | Google Play Store URL |
-| in_app_images | In-app screenshot/image URLs (`|` separated) |
-| in_app_image_captions | Captions for in-app images (`|` separated) |
-| features | 주요 기능(여러 항목은 `|`로 구분) |
-| tips | 간단 팁 |
-
-참고: 관리자 UI는 현재 `image_url`을 텍스트로 받아 저장합니다. 파일 업로드 및 로컬 저장은 향후 구현 예정입니다.
-
----
-
-## 5) 폴더 구조
-
-```
-travelapps/
-├─ app.py                  # 메인 Streamlit 앱
-├─ 9_🔧_Admin.py           # 관리자 패널 단독 실행용
-├─ requirements.txt        # Python 의존성
-├─ README.md               # 이 파일
-├─ components/             # 재사용 UI 및 유틸
-│  ├─ __init__.py
-│  ├─ app_card.py          # 앱 카드 렌더링
-│  ├─ data_loader.py       # CSV 읽기/쓰기 유틸
-│  └─ admin_ui.py          # 관리자 UI 컴포넌트
-├─ data/                   # CSV 데이터 저장소
-│  ├─ apps.csv
-│  ├─ favorites.csv
-│  ├─ situations.csv
-│  └─ emergency.csv
-└─ assets/                 # 이미지·아이콘 등 정적 자원
-	└─ images/
-```
-
----
-
-## 6) 관리자 접근
-
-- 메인 앱 하단 `Administrator Controls`에서 관리자 UI를 임베드로 엽니다.
-- 또는 터미널에서 `streamlit run 9_🔧_Admin.py`로 독립 실행하세요.
-
-관리자 패널은 앱의 추가·수정·삭제 기능을 제공합니다. 접근 제어(비밀번호)는 `components/data_loader.py`에서 설정을 확인하세요.
-
----
-
-## 7) 기여 방법
-
-기여 환영합니다. 간단한 절차:
-
-1. Fork 또는 브랜치 생성
-2. 변경사항 구현 및 테스트
-3. PR 생성 시 변경 요약과 테스트 방법 기재
-
-코드 스타일: 기존 스타일을 따르세요. 주요 변경사항은 이슈로 먼저 제안해 주세요.
-
----
-
-## 8) 문제 해결 (Troubleshooting)
-
-- Streamlit이 포트 충돌로 실행되지 않으면 다른 포트로 실행하세요:
+기본 주소는 `http://localhost:8501`입니다. 포트가 사용 중이면 다음처럼 다른 포트를 지정할 수 있습니다.
 
 ```bash
 streamlit run app.py --server.port 8502
 ```
 
-- CSV 파일이 비어 있거나 컬럼이 누락되면 `data/apps.csv` 샘플을 확인하세요.
+관리자 진입용 파일을 직접 실행할 수도 있습니다.
 
-문제점은 이 저장소의 이슈 트래커로 알려주세요.
+```bash
+streamlit run 9_🔧_Admin.py
+```
 
----
+## 사용 방법
 
-## 9) 라이선스 및 연락처
+홈 화면에서 Essential Apps 또는 원하는 주제를 선택해 앱을 탐색합니다. 앱 상세 화면에서는 스토어 링크, 기능, 팁, 가이드 이미지와 앱 내부 이미지를 확인할 수 있습니다.
 
-문의/피드백: 저장소 이슈 또는 프로젝트 소유자에게 연락 바랍니다.
+Favorites와 Downloaded Apps는 로그인한 사용자만 이용할 수 있습니다. 리뷰는 로그인 후 해당 앱을 Downloaded Apps에 추가한 사용자만 작성할 수 있습니다.
+
+## 관리자 기능
+
+사이드바의 `Administrator Controls`에서 관리자 화면을 열 수 있습니다. 관리자 권한 확인 후 다음 기능을 사용할 수 있습니다.
+
+- 앱 추가, 수정 및 삭제
+- 앱 아이콘, 가이드 이미지, In-App 이미지 업로드
+- Essential Apps 지정 및 해제
+- Situation Helper 항목 관리
+- 리뷰 조회 및 삭제
+- `Before You Land in Korea` 안내 문구 관리
+
+Essential Apps는 일반 카테고리 문자열에 포함되지 않으며 Supabase의 `essential_apps` 테이블에서 `app_id` 기준으로 별도 관리됩니다.
+
+## 주요 데이터 구조
+
+### `apps`
+
+| 필드 | 설명 |
+|---|---|
+| `id` | 앱 고유 ID |
+| `name` | 앱 이름 |
+| `category` | 일반 카테고리. 여러 값은 `\|`로 구분 |
+| `developer` | 개발사 |
+| `description` | 앱 설명 |
+| `platform` | 지원 플랫폼 |
+| `rating` | 기본 평점 |
+| `downloads` | 다운로드 정보 |
+| `features` | 주요 기능. 여러 값은 `\|`로 구분 |
+| `tips` | 사용 팁 |
+| `app icon` / `image_url` | 아이콘 또는 대표 이미지 |
+| `app_store_url` | Apple App Store URL |
+| `play_store_url` | Google Play Store URL |
+| `guide_images` | 사용 가이드 이미지 목록 |
+| `guide_image_captions` | 사용 가이드 이미지 설명 |
+| `in_app_images` | 앱 내부 이미지 목록 |
+| `in_app_image_captions` | 앱 내부 이미지 설명 |
+
+이미지와 캡션을 여러 개 저장할 때는 같은 순서로 `|` 구분자를 사용합니다.
+
+### 기타 주요 테이블
+
+| 테이블 | 용도 |
+|---|---|
+| `essential_apps` | Essential Apps로 선택된 앱 ID |
+| `situations` | 상황별 설명 및 추천 앱 |
+| `app_users` | 사용자 계정 |
+| `user_favorites` | 사용자별 즐겨찾기 |
+| `user_downloads` | 사용자별 다운로드 앱 |
+| `app_reviews` | 사용자 별점 및 리뷰 |
+
+정확한 최신 스키마는 [`supabase_apps_schema.sql`](supabase_apps_schema.sql)을 기준으로 확인하세요.
+
+## 기존 CSV 데이터 이전
+
+`scripts/` 디렉터리에는 기존 로컬 데이터를 Supabase로 이전하기 위한 스크립트가 있습니다.
+
+- `migrate_apps_to_supabase.py`: 앱 데이터 이전
+- `migrate_admin_data_to_supabase.py`: 관리자 데이터 이전
+- `migrate_user_data_to_supabase.py`: 사용자, Favorites, Downloaded Apps, 리뷰 이전
+
+실행 전 `.streamlit/secrets.toml` 설정과 대상 Supabase 프로젝트를 반드시 확인하세요.
+
+## 프로젝트 구조
+
+```text
+travelapps/
+├── app.py
+├── 9_🔧_Admin.py
+├── components/
+│   ├── admin_ui.py
+│   ├── app_card.py
+│   ├── data_loader.py
+│   ├── sidebar.py
+│   └── situation_helper.py
+├── data/
+├── assets/
+│   ├── fonts/
+│   └── images/
+├── scripts/
+├── .streamlit/
+│   └── secrets.example.toml
+├── requirements.txt
+├── supabase_apps_schema.sql
+├── UPDATES.md
+└── README.md
+```
+
+## 문제 해결
+
+- `Missing Supabase settings` 오류가 표시되면 `.streamlit/secrets.toml`의 URL과 키 이름을 확인하세요.
+- 앱 메타데이터 컬럼 오류가 발생하면 최신 `supabase_apps_schema.sql`을 다시 적용하세요.
+- 이미지 업로드가 실패하면 Storage 버킷 이름과 서비스 역할 키를 확인하세요.
+- 로그인 또는 비밀번호 처리 오류가 발생하면 현재 가상환경에 `bcrypt`가 설치되어 있는지 확인하세요.
+
+## 기여 방법
+
+1. 새 브랜치를 만듭니다.
+2. 변경사항을 구현하고 로컬에서 실행해 확인합니다.
+3. 비밀 키, 사용자 데이터, 캐시 파일이 커밋에 포함되지 않았는지 확인합니다.
+4. 변경 목적과 테스트 방법을 적어 Pull Request를 생성합니다.
+
+변경 내역은 [`UPDATES.md`](UPDATES.md)에서 확인할 수 있습니다.
+
+## 문의
+
+문의/피드백: 프로젝트 소유자에게 연락 바랍니다.
 이메일: theonlylemon9@gmail.com
-
----

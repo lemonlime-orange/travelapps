@@ -530,4 +530,18 @@
   - `supabase_apps_schema.sql`
 - 비고: 
 
----
+ ---
+## 1.5.03
+- 날짜: 2026-07-12
+- 변경자: codex (lemonlime-orange)
+- 제목: README.md Update
+- 요약: README.md Update to match recent updates/changes
+- 커밋 제목: README.md Update
+- 변경 내용:
+  - README.md를 UPDATES.md 등을 토대로 수정
+  - README.md를 현재 구현에 맞게 수정
+- 관련 파일: 
+  - `README.md`
+  - `UPDATES.md`
+
+  ---
