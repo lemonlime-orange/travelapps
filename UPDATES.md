@@ -482,4 +482,30 @@
   - `supabase_apps_schema.sql`
 - 비고: 앱 정보 대량 수정 추후 계획되어 있음
 
+
+ ---
+## 1.5.01
+- 날짜: 2026-07-11
+- 변경자: codex (lemonlime-orange)
+- 제목: Account Features Added
+- 요약: Added Features When Logged In
+- 커밋 제목: Log-in Faetures
+- 변경 내용:
+  - 테스트 계정(test_traveler) 추가
+  - 로그인 후 화면에 아무것도 뜨지 않던 현상 수정
+  - Downloaded Apps/Favorites 메뉴는 로그인 후에만 뜰 수 있게 수정
+  - Favorites/Downloaded 메뉴에 로그인 후 해당 버튼 누르면 추가되게 확인
+  - Supabase에 Favorites/Downloaded 유저별 데이터 저장 여부 점검
+  - Add to Favorites/Add to Downloaded Apps에 추가할 때, 로그인 되지 않았으면, "You Need to Sign Up to use this feature."이라는 경고 메세지 뜨는 기능 추가
+  - 위에 경고 메세지 뜨는 위치 등 수정
+  - Tip로 뜨던 것들 Tips로 전부 수정
+- 관련 파일:
+  - `app.py`
+  - `app_card.csv`
+  - `data_loader.py`
+  - `app_card.cpython-314.pyc`
+  - `data_loader.cpython-314.pyc`
+  - `users.csv`
+- 비고: 앱 정보 대량 수정 추후 계획되어 있음
+
 ---

@@ -117,7 +117,8 @@ with st.sidebar:
         st.markdown(f"**Signed in:** {st.session_state.user.get('username')}")
         if st.button('Logout'):
             st.session_state.user = None
-            st.experimental_rerun()
+            st.session_state.page = "home"
+            st.rerun()
     else:
         with st.expander('Login', expanded=True):
             login_user = st.text_input('Username', key='login_user')
@@ -127,7 +128,7 @@ with st.sidebar:
                 if ok:
                     st.session_state.user = user
                     st.success('Logged in')
-                    st.experimental_rerun()
+                    st.rerun()
                 else:
                     st.error('Invalid username or password')
 
@@ -148,7 +149,7 @@ with st.sidebar:
                         user = create_user(su_user, su_pw, su_email)
                         st.session_state.user = user
                         st.success('Account created and signed in')
-                        st.experimental_rerun()
+                        st.rerun()
                     except ValueError as exc:
                         st.error(str(exc))
                     except Exception as exc:
@@ -179,6 +180,11 @@ with st.sidebar:
                     st.rerun()
                 else:
                     st.error("Incorrect password.")
+
+
+auth_notice = st.session_state.pop("auth_notice", None)
+if auth_notice:
+    st.toast(auth_notice, icon="⚠️")
 
 
 # ── 헤더 ─────────────────────────────────────────────────────
@@ -249,19 +255,20 @@ with st.container(border=True):
                 st.session_state.page = name
                 st.rerun()
 
-with st.container(border=True):
-    st.markdown("### ⬇️ Downloaded Apps")
-    st.caption("Apps you've marked as downloaded")
-    if st.button("Open Downloaded Apps", key="open_downloaded_special", use_container_width=True):
-        st.session_state.page = "Downloaded Apps"
-        st.rerun()
+if st.session_state.user:
+    with st.container(border=True):
+        st.markdown("### ⬇️ Downloaded Apps")
+        st.caption("Apps you've marked as downloaded")
+        if st.button("Open Downloaded Apps", key="open_downloaded_special", use_container_width=True):
+            st.session_state.page = "Downloaded Apps"
+            st.rerun()
 
-with st.container(border=True):
-    st.markdown("### ⭐ Favorites")
-    st.caption("Your saved apps")
-    if st.button("Open Favorites", key="open_favorites", use_container_width=True):
-        st.session_state.page = "Favorites"
-        st.rerun()
+    with st.container(border=True):
+        st.markdown("### ⭐ Favorites")
+        st.caption("Your saved apps")
+        if st.button("Open Favorites", key="open_favorites", use_container_width=True):
+            st.session_state.page = "Favorites"
+            st.rerun()
 
 st.divider()
 st.subheader("🎯 Situation Helper")
@@ -300,13 +307,15 @@ if st.session_state.page != "home" and st.session_state.page != "admin":
         render_situation_helper()
     else:
         df = load_apps()
+        top_app_id = None
         
         # 최고 별점 앱 표시 (Favorites, Downloaded Apps, Situation Helper 제외)
         if sel not in ("Favorites", "Downloaded Apps", "Situation Helper"):
             top_app = get_top_rated_app(df, sel)
             if top_app:
+                top_app_id = int(top_app["id"])
                 st.subheader("🌟 Top Rated App")
-                render_app_card(top_app, show_favorite=True)
+                render_app_card(top_app, show_favorite=True, show_reviews=True)
                 st.divider()
         
         if sel == "Favorites":
@@ -318,6 +327,9 @@ if st.session_state.page != "home" and st.session_state.page != "admin":
             view_df = get_apps_by_ids(df, dl_ids)
         else:
             view_df = filter_by_category(df, sel)
+
+        if top_app_id is not None:
+            view_df = view_df[view_df["id"] != top_app_id]
 
         if view_df.empty:
             st.info("No apps found for this category.")
@@ -333,5 +345,5 @@ if st.session_state.page != "home" and st.session_state.page != "admin":
                         show_reviews=True,
                     )
                 else:
-                    render_app_card(row.to_dict())
+                    render_app_card(row.to_dict(), show_reviews=True)
 

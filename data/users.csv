@@ -1,2 +1,3 @@
 user_id,username,password_hash,salt,email,created_at
 0,guest,,,,2026-06-06T03:42:29.486456Z
+1,test_traveler,$2b$12$R6FwV1EXKl6W37cLgTRO4O9FlubXndM5Q5XXldEfb3MeoYooq4wty,$2b$12$R6FwV1EXKl6W37cLgTRO4O,test@example.com,2026-07-11T05:15:17.805890Z

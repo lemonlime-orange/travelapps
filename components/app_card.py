@@ -404,7 +404,11 @@ def _render_review_button(app_id):
     if review_key not in st.session_state:
         st.session_state[review_key] = False
 
-    label = "Hide User Reviews" if st.session_state[review_key] else "User Reviews"
+    label = (
+        "Hide Real User Reviews"
+        if st.session_state[review_key]
+        else "Check Real User Reviews"
+    )
     if st.button(label, key=f"review_toggle_{app_id}", type="primary", use_container_width=True):
         st.session_state[review_key] = not st.session_state[review_key]
         st.rerun()
@@ -425,6 +429,7 @@ def render_app_card(
     """
     features = [f.strip() for f in app["features"].split("|")]
     app_id = int(app["id"])
+    user = st.session_state.get("user")
     fav = is_favorite(app_id)
     display_rating, review_count, rating_source = get_display_rating(app_id, app["rating"])
     app_store_url = str(app.get("app_store_url", "") or "").strip()
@@ -484,15 +489,23 @@ def render_app_card(
             with col_download_mark:
                 mark = "📥 Downloaded" if dl else "⬇️ Add to Downloaded Apps"
                 if st.button(mark, key=f"dl_{app_id}", help=mark):
-                    toggle_downloaded(app_id)
-                    st.rerun()
+                    if not user:
+                        st.session_state.auth_notice = "You Need to Sign Up to use this feature."
+                        st.rerun()
+                    else:
+                        toggle_downloaded(app_id)
+                        st.rerun()
 
         if show_favorite:
             with col_fav:
                 star = "⭐" if fav else "☆"
                 if st.button(star, key=f"fav_{app_id}", help="Add to Favorites"):
-                    toggle_favorite(app_id)
-                    st.rerun()
+                    if not user:
+                        st.session_state.auth_notice = "You Need to Sign Up to use this feature."
+                        st.rerun()
+                    else:
+                        toggle_favorite(app_id)
+                        st.rerun()
 
         # 설명
         st.markdown(app["description"])
@@ -525,7 +538,7 @@ def render_app_card(
             cols[i % 2].markdown(f"- {feature}")
 
         # 여행 팁
-        st.info(f"💡 **Tip:** {app['tips']}")
+        st.info(f"💡 **Tips:** {app['tips']}")
 
         # 링크는 상단의 Download 버튼으로 대체됨
 

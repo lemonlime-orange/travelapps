@@ -151,6 +151,18 @@ def _current_user_id():
     return str(user.get("user_id") or "0")
 
 
+def _authenticated_user_id():
+    if st is None:
+        return None
+    try:
+        user = st.session_state.get("user")
+    except Exception:
+        return None
+    if not user or not user.get("user_id"):
+        return None
+    return str(user["user_id"])
+
+
 def _select_all_rows(client, table_name, columns, order_column="id"):
     rows = []
     start = 0
@@ -539,7 +551,9 @@ def _save_local_user_app_ids(filename, user_id, app_ids, timestamp_column):
 
 
 def _load_user_app_ids(table_name, filename, timestamp_column):
-    user_id = _current_user_id()
+    user_id = _authenticated_user_id()
+    if user_id is None:
+        return []
     try:
         client = get_supabase_client(use_service_role=True)
         response = (
@@ -555,7 +569,9 @@ def _load_user_app_ids(table_name, filename, timestamp_column):
 
 
 def _save_user_app_ids(table_name, filename, timestamp_column, app_ids):
-    user_id = _current_user_id()
+    user_id = _authenticated_user_id()
+    if user_id is None:
+        raise PermissionError("Log in to save Favorites or Downloaded Apps.")
     unique_ids = []
     for app_id in app_ids:
         app_id = int(app_id)
