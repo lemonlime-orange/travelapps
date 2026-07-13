@@ -545,3 +545,34 @@
   - `UPDATES.md`
 
   ---
+
+## 1.6.01
+- 날짜: 2026-07-13
+- 변경자: codex (lemonlime-orange)
+- 제목: Large Data Update with Essential App Feature edited
+- 요약: Added new apps with confirmed data
+- 커밋 제목: Large Data Update with Essential App Feature edited
+- 변경 내용:
+  - 앱 데이터 추가 및 기존 데이터 이동/삭제
+  - 없어진 앱의 데이터는 삭제, id가 바뀐 앱의 데이터는 이동
+  - Essential Apps에 선정 이유 기능 추가
+  - Supabase에 essential_apps 테이블에 why_essential column 추가
+  - 그 외 소규모 error들 수정
+  - 
+- 관련 파일:
+  - `app.py`
+  - `data_loader.py`
+  - `admin_ui.py`
+  - `app_card.py`
+  - `migrate_apps_to_supabase.py`
+  - `app.cpython-314.pyc`
+  - `admin_ui.cpython-314.pyc`
+  - `app_card.cpython-314.pyc`
+  - `data_loader.cpython-314.pyc`
+  - `apps.csv`
+  - `README.md`
+  - `supabase_apps_schema.sql`
+  - `reconcile_replaced_app_ids.sql`
+- 비고:
+  - Supabase에서 app-data edit(4) 절대 재실행하지 말것(파일 구조 깨질 수 있음)
+  - Essential App으로 지정할 경우 선정 이유 필수 작성.

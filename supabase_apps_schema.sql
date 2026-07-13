@@ -133,8 +133,12 @@ using (true);
 -- Essential Apps membership is kept separately from general app categories.
 create table if not exists public.essential_apps (
   app_id integer primary key references public.apps(id) on delete cascade,
+  why_essential text not null default '',
   created_at timestamptz not null default now()
 );
+
+alter table public.essential_apps
+add column if not exists why_essential text not null default '';
 
 -- Preserve existing Essential Apps selections when this schema is first applied.
 insert into public.essential_apps (app_id)

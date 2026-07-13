@@ -10,7 +10,7 @@ import streamlit as st
 from components.data_loader import (
     load_apps, get_categories,
     add_app, update_app, delete_app,
-    load_essential_app_ids, set_essential_app,
+    load_essential_apps, set_essential_app,
     upload_internal_asset,
     get_display_rating,
     check_password,
@@ -148,6 +148,12 @@ def render_admin_panel():
                 name = st.text_input("App Name *", placeholder="e.g. Kakao T")
                 category = st.multiselect("Categories *", CATEGORIES, default=[])
                 is_essential = st.checkbox("Show in Essential Apps")
+                why_essential = st.text_area(
+                    "Why is this app essential?",
+                    placeholder="Explain why a traveler should install this app.",
+                    help="Required when the app is shown in Essential Apps. This appears above the app description.",
+                    height=100,
+                )
                 image_url = st.text_input("Image URL *", placeholder="https://example.com/logo.png")
                 platform = st.selectbox("Platform *", PLATFORMS)
                 rating = st.slider("Rating", 0.0, 5.0, 4.0, 0.1)
@@ -197,6 +203,8 @@ def render_admin_panel():
                 missing.append("Features")
             if not tips.strip():
                 missing.append("Tips")
+            if is_essential and not why_essential.strip():
+                missing.append("Why this app is essential")
 
             if missing:
                 st.error(f"❌ Please fill in: {', '.join(missing)}")
@@ -269,7 +277,7 @@ def render_admin_panel():
                     new_app_id = add_app(new_app)
                     if not new_app_id:
                         st.stop()
-                    if not set_essential_app(new_app_id, is_essential):
+                    if not set_essential_app(new_app_id, is_essential, why_essential):
                         st.stop()
                 st.success(f"🎉 **{name}** has been added successfully!")
                 st.experimental_rerun()
@@ -288,7 +296,8 @@ def render_admin_panel():
         selected_label = st.selectbox("Select an app to edit", list(app_options.keys()), key="edit_select")
         selected_id = app_options[selected_label]
         app = df[df["id"] == selected_id].iloc[0].to_dict()
-        essential_ids = set(load_essential_app_ids(use_service_role=True))
+        essential_apps = load_essential_apps(use_service_role=True)
+        essential_ids = set(essential_apps)
         current_app_store_url, current_play_store_url = _initial_store_urls(app)
         display_rating, rating_review_count, rating_source = get_display_rating(selected_id, app["rating"])
         new_rating = float(app["rating"])
@@ -306,6 +315,12 @@ def render_admin_panel():
                 current_cats = [c.strip() for c in str(app.get("category", "")).split("|") if c.strip()]
                 new_category = st.multiselect("Categories", CATEGORIES, default=current_cats)
                 new_is_essential = st.checkbox("Show in Essential Apps", value=int(selected_id) in essential_ids)
+                new_why_essential = st.text_area(
+                    "Why is this app essential?",
+                    value=essential_apps.get(int(selected_id), ""),
+                    help="Required when the app is shown in Essential Apps. This appears above the app description.",
+                    height=100,
+                )
                 new_image_url = st.text_input("Image URL", value=app.get("image_url", ""))
                 new_platform = st.selectbox(
                     "Platform",
@@ -390,6 +405,8 @@ def render_admin_panel():
                 missing.append("Features")
             if not new_tips.strip():
                 missing.append("Tips")
+            if new_is_essential and not new_why_essential.strip():
+                missing.append("Why this app is essential")
 
             if missing:
                 st.error(f"❌ Please fill in: {', '.join(missing)}")
@@ -466,7 +483,7 @@ def render_admin_panel():
                 }
                 if not update_app(selected_id, updated):
                     st.stop()
-                if not set_essential_app(selected_id, new_is_essential):
+                if not set_essential_app(selected_id, new_is_essential, new_why_essential):
                     st.stop()
                 st.success(f"✅ **{new_name}** updated successfully!")
                 st.experimental_rerun()

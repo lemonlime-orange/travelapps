@@ -507,6 +507,11 @@ def render_app_card(
                         toggle_favorite(app_id)
                         st.rerun()
 
+        # Essential Apps 선정 이유 (Essential Apps 화면에서 주입된 경우에만 표시)
+        why_essential = str(app.get("why_essential", "") or "").strip()
+        if why_essential:
+            st.info(f"⭐ **Why this app is essential**\n\n{why_essential}")
+
         # 설명
         st.markdown(app["description"])
 

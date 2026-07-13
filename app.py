@@ -10,7 +10,7 @@ import streamlit as st
 from components.data_loader import (
     load_apps, filter_by_category, load_favorites, get_apps_by_ids, get_top_rated_app,
     get_before_land_tips, check_password, find_user_by_username, create_user, verify_user,
-    load_essential_app_ids,
+    load_essential_apps,
 )
 from components.app_card import render_app_card
 from components.situation_helper import render_situation_helper
@@ -309,7 +309,9 @@ if st.session_state.page != "home" and st.session_state.page != "admin":
     else:
         df = load_apps()
         if sel == "Essential Apps":
-            df = get_apps_by_ids(df, load_essential_app_ids())
+            essential_apps = load_essential_apps()
+            df = get_apps_by_ids(df, essential_apps.keys()).copy()
+            df["why_essential"] = df["id"].map(essential_apps).fillna("")
         top_app_id = None
         
         # 최고 별점 앱 표시 (Favorites, Downloaded Apps, Situation Helper 제외)

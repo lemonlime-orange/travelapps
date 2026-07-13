@@ -428,22 +428,41 @@ def add_app(new_app):
 
 def load_essential_app_ids(use_service_role=False):
     """Return app IDs configured for the Essential Apps page."""
+    return list(load_essential_apps(use_service_role=use_service_role))
+
+
+def load_essential_apps(use_service_role=False):
+    """Return Essential App metadata keyed by app ID."""
     try:
         client = get_supabase_client(use_service_role=use_service_role)
-        response = client.table(ESSENTIAL_APPS_TABLE).select("app_id").order("app_id").execute()
-        return [int(row["app_id"]) for row in (response.data or [])]
+        response = (
+            client.table(ESSENTIAL_APPS_TABLE)
+            .select("app_id,why_essential")
+            .order("app_id")
+            .execute()
+        )
+        return {
+            int(row["app_id"]): str(row.get("why_essential") or "").strip()
+            for row in (response.data or [])
+        }
     except Exception as exc:
         _notify_error(f"Essential Apps could not be loaded: {exc}")
-        return []
+        return {}
 
 
-def set_essential_app(app_id, is_essential):
+def set_essential_app(app_id, is_essential, why_essential=""):
     """Add or remove an app from the Essential Apps mapping table."""
     try:
         client = get_supabase_client(use_service_role=True)
         query = client.table(ESSENTIAL_APPS_TABLE)
         if is_essential:
-            query.upsert({"app_id": int(app_id)}, on_conflict="app_id").execute()
+            query.upsert(
+                {
+                    "app_id": int(app_id),
+                    "why_essential": str(why_essential or "").strip(),
+                },
+                on_conflict="app_id",
+            ).execute()
         else:
             query.delete().eq("app_id", int(app_id)).execute()
         return True
