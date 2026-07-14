@@ -509,6 +509,7 @@
 - 비고: 앱 정보 대량 수정 추후 계획되어 있음
 
  ---
+
 ## 1.5.02
 - 날짜: 2026-07-12
 - 변경자: codex (lemonlime-orange)
@@ -531,6 +532,7 @@
 - 비고: 
 
  ---
+
 ## 1.5.03
 - 날짜: 2026-07-12
 - 변경자: codex (lemonlime-orange)
@@ -558,7 +560,6 @@
   - Essential Apps에 선정 이유 기능 추가
   - Supabase에 essential_apps 테이블에 why_essential column 추가
   - 그 외 소규모 error들 수정
-  - 
 - 관련 파일:
   - `app.py`
   - `data_loader.py`
@@ -577,10 +578,9 @@
   - Supabase에서 app-data edit(4) 절대 재실행하지 말것(파일 구조 깨질 수 있음)
   - Essential App으로 지정할 경우 선정 이유 필수 작성.
 
+ ---
 
-  ---
-
-  ## 1.6.02
+## 1.6.02
 - 날짜: 2026-07-13
 - 변경자: codex (lemonlime-orange)
 - 제목: Before You Land in Korea Changes
@@ -599,3 +599,44 @@
   - `sidebar.cpython-314.pyc`
 - 비고:
   - 작업 과정 Supabase 데이터와 일부 호환 오류가 나서, 수정 후 정상화
+
+  ---
+
+## 1.6.03
+- 날짜: 2026-07-14
+- 변경자: codex (lemonlime-orange)
+- 제목: Before You Land in Korea Changes
+- 요약: ⚡ Before You Land in Korea data stored in new data table
+- 커밋 제목: Before You Land in Korea Changes to Data Storage
+- 변경 내용:
+  - Before You Land in Korea 내용의 데이터가 app_setting 1칸에 전부 들어가, 로딩이 매우 느렸음
+  - before_land_steps Supabase 테이블에 데이터가 저장되게 함
+  - id, title, content, position로 열 구성
+  - 기존 app_settings.before_land 데이터 삭제
+- 관련 파일: 
+  - `data_loader.py`
+  - `data_loader.cpython-314.pyc`
+  - `migrate_admin_data_to_supabase.py`
+  - `supabase_apps_schema.sql`
+- 비고:
+  - 기존 데이터는 사용자 요청에 의해 삭제
+
+  ---
+
+## 1.6.04
+- 날짜: 2026-07-14
+- 변경자: codex (lemonlime-orange)
+- 제목: Before You Land in Korea Minor Changes
+- 요약: ⚡ Before You Land in Korea minor changes in Data Storage
+- 커밋 제목: Before You Land in Korea Minor Changes to Data Storage
+- 변경 내용:
+  - Before You Land in Korea 내용을 담은 before_land_steps 약간 수정
+  - id 행 저장 방식 UUID -> (bigint 1,2,3, ...의 정수 ID로 변환)
+  - position 넘버링이 0부터 시작하던 것을 1부터 시작하게 수정
+- 관련 파일: 
+  - `data_loader.py`
+  - `data_loader.cpython-314.pyc`
+  - `migrate_admin_data_to_supabase.py`
+  - `supabase_apps_schema.sql`
+- 비고:
+  - UUID에서 bigint 방식으로 바꿨으므로 여러 사용자 동시 수정 주의 필요

@@ -63,7 +63,12 @@ def migrate_settings(supabase):
     with open(SETTINGS_JSON, "r", encoding="utf-8") as file:
         settings = json.load(file)
 
-    rows = [{"key": str(key), "value": value} for key, value in settings.items()]
+    supabase.table("app_settings").delete().eq("key", "before_land").execute()
+    rows = [
+        {"key": str(key), "value": value}
+        for key, value in settings.items()
+        if key != "before_land"
+    ]
     if rows:
         supabase.table("app_settings").upsert(rows, on_conflict="key").execute()
     print(f"Upserted {len(rows)} setting rows to Supabase.")

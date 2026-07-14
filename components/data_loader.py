@@ -24,6 +24,7 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 APPS_TABLE = "apps"
 SITUATIONS_TABLE = "situations"
 SETTINGS_TABLE = "app_settings"
+BEFORE_LAND_STEPS_TABLE = "before_land_steps"
 USERS_TABLE = "app_users"
 USER_FAVORITES_TABLE = "user_favorites"
 USER_DOWNLOADS_TABLE = "user_downloads"
@@ -68,6 +69,7 @@ SITUATION_COLUMNS = [
 
 ADMIN_PASSWORD = "travel2korea"
 SETTINGS_FILENAME = "settings.json"
+BEFORE_LAND_STEPS_FILENAME = "before_land_steps.json"
 SUPABASE_PAGE_SIZE = 1000
 REVIEWS_FILENAME = "app_reviews.csv"
 MIN_REVIEWS_FOR_AVERAGE_RATING = 5
@@ -1013,29 +1015,44 @@ def update_before_land_tips(tips):
 
 
 def get_before_land_steps():
-    """Return normalized, ordered steps while supporting the legacy tip list."""
-    settings = load_settings()
-    raw_steps = settings.get("before_land", [])
+    """Return the ordered Before You Land steps from their dedicated table."""
+    try:
+        client = get_supabase_client()
+        response = (
+            client.table(BEFORE_LAND_STEPS_TABLE)
+            .select("id,title,content,position")
+            .order("position")
+            .execute()
+        )
+        raw_steps = response.data or []
+    except Exception as exc:
+        _notify_error(f"Before You Land steps could not be loaded; using local JSON: {exc}")
+        p = _path(BEFORE_LAND_STEPS_FILENAME)
+        if not os.path.exists(p):
+            return []
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                raw_steps = json.load(f)
+        except Exception:
+            return []
 
-    if isinstance(raw_steps, (str, dict)):
-        raw_steps = [raw_steps]
     if not isinstance(raw_steps, list):
         return []
 
     steps = []
     for index, item in enumerate(raw_steps):
         if isinstance(item, dict):
-            step_id = str(item.get("id") or f"legacy-step-{index + 1}").strip()
+            step_id = str(item.get("id") or uuid.uuid4()).strip()
             title = str(item.get("title") or f"Step {index + 1}").strip()
             content = str(item.get("content") or "").strip()
         else:
-            step_id = f"legacy-step-{index + 1}"
+            step_id = str(uuid.uuid4())
             title = f"Step {index + 1}"
             content = str(item or "").strip()
 
         if content:
             steps.append({
-                "id": step_id or f"legacy-step-{index + 1}",
+                "id": step_id or str(uuid.uuid4()),
                 "title": title or f"Step {index + 1}",
                 "content": content,
             })
@@ -1048,16 +1065,28 @@ def update_before_land_steps(steps):
     for index, step in enumerate(steps or []):
         if not isinstance(step, dict):
             continue
-        step_id = str(step.get("id") or uuid.uuid4()).strip()
         title = str(step.get("title") or f"Step {index + 1}").strip()
         content = str(step.get("content") or "").strip()
         if content:
             normalized.append({
-                "id": step_id or str(uuid.uuid4()),
                 "title": title or f"Step {index + 1}",
                 "content": content,
             })
 
-    settings = load_settings()
-    settings["before_land"] = normalized
-    return save_settings(settings)
+    rows = [
+        {"id": position, **step, "position": position}
+        for position, step in enumerate(normalized, start=1)
+    ]
+
+    try:
+        client = get_supabase_client(use_service_role=True)
+        client.table(BEFORE_LAND_STEPS_TABLE).delete().gte("id", 1).execute()
+        if rows:
+            client.table(BEFORE_LAND_STEPS_TABLE).insert(rows).execute()
+        return True
+    except Exception as exc:
+        _notify_error(f"Before You Land steps could not be saved; using local JSON: {exc}")
+        p = _path(BEFORE_LAND_STEPS_FILENAME)
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump(rows, f, ensure_ascii=False, indent=2)
+        return False
