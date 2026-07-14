@@ -74,7 +74,6 @@ def inject_global_font():
         }}
 
         h1, h2, h3, h4, h5, h6,
-        [data-testid="stHeader"] *,
         [data-testid="stMarkdownContainer"] h1,
         [data-testid="stMarkdownContainer"] h2,
         [data-testid="stMarkdownContainer"] h3,
@@ -83,6 +82,21 @@ def inject_global_font():
         [data-testid="stMarkdownContainer"] h6 {{
             font-family: 'Do Hyeon', sans-serif !important;
             font-weight: 700 !important;
+        }}
+
+        /* Keep Streamlit's sidebar toggle rendered as a ligature icon.
+           A global heading font turns its name into visible text when collapsed. */
+        [data-testid="stHeader"] [data-testid="stIconMaterial"],
+        [data-testid="stSidebarCollapsedControl"] [data-testid="stIconMaterial"] {{
+            font-family: 'Material Symbols Rounded', 'Material Symbols Outlined',
+                'Material Icons' !important;
+            font-weight: normal !important;
+            font-style: normal !important;
+            letter-spacing: normal !important;
+            text-transform: none !important;
+            white-space: nowrap !important;
+            font-feature-settings: 'liga' !important;
+            -webkit-font-feature-settings: 'liga' !important;
         }}
 
         .hero-subtitle {{
@@ -242,11 +256,11 @@ with st.expander("⚡ Before You Land in Korea", expanded=False):
         if st.button(
             "←",
             key="before_land_previous",
-            disabled=len(steps) <= 1,
+            disabled=current_index == 0,
             help="Previous step",
             use_container_width=True,
         ):
-            st.session_state[step_index_key] = (current_index - 1) % len(steps)
+            st.session_state[step_index_key] = current_index - 1
             st.rerun()
 
     with step_col:
@@ -259,11 +273,11 @@ with st.expander("⚡ Before You Land in Korea", expanded=False):
         if st.button(
             "→",
             key="before_land_next",
-            disabled=len(steps) <= 1,
+            disabled=current_index == len(steps) - 1,
             help="Next step",
             use_container_width=True,
         ):
-            st.session_state[step_index_key] = (current_index + 1) % len(steps)
+            st.session_state[step_index_key] = current_index + 1
             st.rerun()
 
 st.divider()
@@ -325,7 +339,7 @@ with st.container(border=True):
         st.rerun()
 
 st.divider()
-st.caption("App data stored in Supabase · Built with Streamlit 🎈")
+st.caption("This is made available by Supabase & Streamlit")
 
 # 관리 패널 임베드 렌더링
 if st.session_state.page == "admin":

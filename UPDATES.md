@@ -640,3 +640,23 @@
   - `supabase_apps_schema.sql`
 - 비고:
   - UUID에서 bigint 방식으로 바꿨으므로 여러 사용자 동시 수정 주의 필요
+
+  ---
+
+## 1.6.05
+- 날짜: 2026-07-14
+- 변경자: codex (lemonlime-orange)
+- 제목: Minor Fixes
+- 요약: Minor Fixes
+- 커밋 제목: Minor Fixes
+- 변경 내용:
+  - sidebar가 접힐때, 접고 여는 화살표가 아이콘 대신 글씨로 깨져 나오던 현상 수정
+  - ⚡ Before You Land in Korea의 양 끝에서는 더 이상 넘길 수 없게 수정
+  - 가장 하단의 App data stored in Supabase · Built with Streamlit 🎈 을 This is made available by Supabase & Streamlit 로 수정
+- 관련 파일: 
+  - `app.py`
+  - `app.cpython-314.pyc`
+  - `sidebar.py`
+  - `sidebar.cpython-314.pyc`
+- 비고:
+  - 소규모 수정사항들 수정 및 보완
