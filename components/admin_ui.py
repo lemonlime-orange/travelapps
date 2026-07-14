@@ -17,7 +17,7 @@ from components.data_loader import (
     load_situations, get_situation_categories,
     add_situation, update_situation, delete_situation,
 )
-from components.data_loader import get_before_land_tips, update_before_land_tips
+from components.data_loader import get_before_land_steps, update_before_land_steps
 
 
 def _split_lines_preserve_order(text):
@@ -103,6 +103,65 @@ def render_admin_panel():
     df = load_apps(use_service_role=True)
 
     tab_list, tab_add, tab_edit, tab_situation, tab_before = st.tabs(["📋 App List", "➕ Add App", "✏️ Edit / Delete", "🎯 Situation Helper", "📝 Before You Land"])
+
+    # The existing app editor stops the script when there are no apps. Render
+    # this independent settings tab first so it remains usable in a new project.
+    if df.empty:
+        with tab_before:
+            st.subheader("📝 Manage 'Before You Land in Korea' Steps")
+            st.caption("Each step appears as one slide inside the existing dropdown. Markdown is supported in the content field.")
+
+            empty_state_steps = get_before_land_steps()
+            if not empty_state_steps:
+                st.info("No steps have been saved yet. Add the first step below.")
+
+            for index, step in enumerate(empty_state_steps):
+                step_id = step.get("id") or f"empty_step_{index}"
+                with st.expander(f"Step {index + 1}: {step.get('title') or f'Step {index + 1}'}"):
+                    with st.form(f"empty_before_land_step_{step_id}"):
+                        empty_title = st.text_input(
+                            "Step title",
+                            value=step.get("title", ""),
+                            key=f"empty_before_land_title_{step_id}",
+                        )
+                        empty_content = st.text_area(
+                            "Step content",
+                            value=step.get("content", ""),
+                            height=180,
+                            key=f"empty_before_land_content_{step_id}",
+                        )
+                        save_empty_step = st.form_submit_button("💾 Save Step", type="primary")
+
+                    if save_empty_step:
+                        if not empty_title.strip() or not empty_content.strip():
+                            st.warning("Enter both a title and content for this step.")
+                        else:
+                            updated_steps = [dict(item) for item in empty_state_steps]
+                            updated_steps[index] = {
+                                "id": step_id,
+                                "title": empty_title.strip(),
+                                "content": empty_content.strip(),
+                            }
+                            update_before_land_steps(updated_steps)
+                            st.rerun()
+
+            st.markdown("#### ➕ Add a New Step")
+            with st.form("empty_form_add_before_land_step", clear_on_submit=True):
+                empty_new_title = st.text_input("Step title *")
+                empty_new_content = st.text_area("Step content *", height=180)
+                add_empty_step = st.form_submit_button("➕ Add Step", type="primary", use_container_width=True)
+
+            if add_empty_step:
+                if not empty_new_title.strip() or not empty_new_content.strip():
+                    st.warning("Enter both a title and content for the new step.")
+                else:
+                    updated_steps = [dict(item) for item in empty_state_steps]
+                    updated_steps.append({
+                        "title": empty_new_title.strip(),
+                        "content": empty_new_content.strip(),
+                    })
+                    update_before_land_steps(updated_steps)
+                    st.rerun()
 
     # 탭 1: 앱 목록
     with tab_list:
@@ -667,20 +726,104 @@ def render_admin_panel():
                             st.session_state.pop("confirm_delete_situation", None)
                             st.experimental_rerun()
 
-        # 탭: Before You Land 편집
-        with tab_before:
-            st.subheader("📝 Edit 'Before You Land in Korea' Tips")
+    # 탭: Before You Land 단계 관리
+    with tab_before:
+        st.subheader("📝 Manage 'Before You Land in Korea' Steps")
+        st.caption("Each step appears as one slide inside the existing dropdown. Markdown is supported in the content field.")
 
-            current = get_before_land_tips()
-            default_text = "\n".join(current) if current else "📶 Get a SIM or pocket Wi-Fi at Incheon Airport — essential for all apps below.\n💳 Load a **T-money card** for seamless subway & bus travel across the country.\n📥 Download **Papago** and **Naver Maps** offline before leaving your hotel.\n🚕 Install **Kakao T** before your first night — finding taxis gets much easier."
+        current_steps = get_before_land_steps()
+        if not current_steps:
+            st.info("No steps have been saved yet. Add the first step below.")
 
-            with st.form("form_before_land"):
-                st.markdown("Tips: 입력 시 각 라인 하나의 팁으로 취급됩니다. 이모지를 포함할 수 있습니다.")
-                tips_text = st.text_area("Tips (one per line)", value=default_text, height=200)
-                save_tips = st.form_submit_button("💾 Save Tips", type="primary")
+        for index, step in enumerate(current_steps):
+            step_title = step.get("title") or f"Step {index + 1}"
+            step_id = step.get("id") or f"step_{index}"
+            with st.expander(f"Step {index + 1}: {step_title}", expanded=False):
+                with st.form(f"form_before_land_step_{step_id}"):
+                    edited_title = st.text_input(
+                        "Step title",
+                        value=step_title,
+                        key=f"before_land_title_{step_id}",
+                    )
+                    edited_content = st.text_area(
+                        "Step content",
+                        value=step.get("content", ""),
+                        height=180,
+                        key=f"before_land_content_{step_id}",
+                    )
+                    save_step = st.form_submit_button("💾 Save Step", type="primary")
 
-            if save_tips:
-                new_tips = [line.strip() for line in tips_text.splitlines() if line.strip()]
-                update_before_land_tips(new_tips)
-                st.success("✅ 'Before You Land' tips updated.")
-                st.experimental_rerun()
+                if save_step:
+                    if not edited_title.strip() or not edited_content.strip():
+                        st.warning("Enter both a title and content for this step.")
+                    else:
+                        updated_steps = [dict(item) for item in current_steps]
+                        updated_steps[index] = {
+                            "id": step_id,
+                            "title": edited_title.strip(),
+                            "content": edited_content.strip(),
+                        }
+                        update_before_land_steps(updated_steps)
+                        st.success(f"Step {index + 1} updated.")
+                        st.rerun()
+
+                move_up_col, move_down_col, delete_col = st.columns(3)
+                with move_up_col:
+                    if st.button(
+                        "↑ Move Up",
+                        key=f"before_land_up_{step_id}",
+                        disabled=index == 0,
+                        use_container_width=True,
+                    ):
+                        reordered = [dict(item) for item in current_steps]
+                        reordered[index - 1], reordered[index] = reordered[index], reordered[index - 1]
+                        update_before_land_steps(reordered)
+                        st.rerun()
+
+                with move_down_col:
+                    if st.button(
+                        "↓ Move Down",
+                        key=f"before_land_down_{step_id}",
+                        disabled=index == len(current_steps) - 1,
+                        use_container_width=True,
+                    ):
+                        reordered = [dict(item) for item in current_steps]
+                        reordered[index + 1], reordered[index] = reordered[index], reordered[index + 1]
+                        update_before_land_steps(reordered)
+                        st.rerun()
+
+                with delete_col:
+                    if st.button(
+                        "🗑️ Delete Step",
+                        key=f"before_land_delete_{step_id}",
+                        use_container_width=True,
+                    ):
+                        remaining_steps = [
+                            dict(item) for item_index, item in enumerate(current_steps) if item_index != index
+                        ]
+                        update_before_land_steps(remaining_steps)
+                        st.rerun()
+
+        st.divider()
+        st.markdown("#### ➕ Add a New Step")
+        with st.form("form_add_before_land_step", clear_on_submit=True):
+            new_title = st.text_input(
+                "Step title *",
+                placeholder="e.g. Check your entry requirements",
+            )
+            new_content = st.text_area(
+                "Step content *",
+                placeholder="Write the information travelers should complete at this stage.",
+                height=180,
+            )
+            add_step = st.form_submit_button("➕ Add Step", type="primary", use_container_width=True)
+
+        if add_step:
+            if not new_title.strip() or not new_content.strip():
+                st.warning("Enter both a title and content for the new step.")
+            else:
+                updated_steps = [dict(item) for item in current_steps]
+                updated_steps.append({"title": new_title.strip(), "content": new_content.strip()})
+                update_before_land_steps(updated_steps)
+                st.success(f"Step {len(updated_steps)} added.")
+                st.rerun()

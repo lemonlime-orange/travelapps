@@ -998,16 +998,66 @@ def save_settings(settings):
 
 
 def get_before_land_tips():
-    settings = load_settings()
-    tips = settings.get("before_land", [])
-    if isinstance(tips, str):
-        return [tips]
-    if not isinstance(tips, list):
-        return []
-    return tips
+    """Backward-compatible content-only view of the Before You Land steps."""
+    return [step["content"] for step in get_before_land_steps()]
 
 
 def update_before_land_tips(tips):
+    """Backward-compatible writer for callers that still provide plain tips."""
+    steps = [
+        {"title": f"Step {index + 1}", "content": str(tip or "").strip()}
+        for index, tip in enumerate(tips or [])
+        if str(tip or "").strip()
+    ]
+    return update_before_land_steps(steps)
+
+
+def get_before_land_steps():
+    """Return normalized, ordered steps while supporting the legacy tip list."""
     settings = load_settings()
-    settings["before_land"] = tips
+    raw_steps = settings.get("before_land", [])
+
+    if isinstance(raw_steps, (str, dict)):
+        raw_steps = [raw_steps]
+    if not isinstance(raw_steps, list):
+        return []
+
+    steps = []
+    for index, item in enumerate(raw_steps):
+        if isinstance(item, dict):
+            step_id = str(item.get("id") or f"legacy-step-{index + 1}").strip()
+            title = str(item.get("title") or f"Step {index + 1}").strip()
+            content = str(item.get("content") or "").strip()
+        else:
+            step_id = f"legacy-step-{index + 1}"
+            title = f"Step {index + 1}"
+            content = str(item or "").strip()
+
+        if content:
+            steps.append({
+                "id": step_id or f"legacy-step-{index + 1}",
+                "title": title or f"Step {index + 1}",
+                "content": content,
+            })
+
+    return steps
+
+
+def update_before_land_steps(steps):
+    normalized = []
+    for index, step in enumerate(steps or []):
+        if not isinstance(step, dict):
+            continue
+        step_id = str(step.get("id") or uuid.uuid4()).strip()
+        title = str(step.get("title") or f"Step {index + 1}").strip()
+        content = str(step.get("content") or "").strip()
+        if content:
+            normalized.append({
+                "id": step_id or str(uuid.uuid4()),
+                "title": title or f"Step {index + 1}",
+                "content": content,
+            })
+
+    settings = load_settings()
+    settings["before_land"] = normalized
     return save_settings(settings)

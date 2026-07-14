@@ -576,3 +576,26 @@
 - 비고:
   - Supabase에서 app-data edit(4) 절대 재실행하지 말것(파일 구조 깨질 수 있음)
   - Essential App으로 지정할 경우 선정 이유 필수 작성.
+
+
+  ---
+
+  ## 1.6.02
+- 날짜: 2026-07-13
+- 변경자: codex (lemonlime-orange)
+- 제목: Before You Land in Korea Changes
+- 요약: ⚡ Before You Land in Korea Format Edited
+- 커밋 제목: Before You Land in Korea Changes
+- 변경 내용:
+  - Before You Land in Korea 시스템을 원래의 드롭다운만 되는 형태에서 드롭다운 및 단계별로 나누어 옆으로 넘길 수 있는 형태로 바꿈
+  - 내용 작성 및 단계 추가 Administator Controls에서 가능
+- 관련 파일: 
+  - `app.py`
+  - `admin_ui.py`
+  - `data_loader.py`
+  - `app.cpython-314.pyc`
+  - `admin_ui.cpython-314.pyc`
+  - `data_loader.cpython-314.pyc`
+  - `sidebar.cpython-314.pyc`
+- 비고:
+  - 작업 과정 Supabase 데이터와 일부 호환 오류가 나서, 수정 후 정상화

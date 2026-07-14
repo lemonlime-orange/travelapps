@@ -9,7 +9,7 @@ from pathlib import Path
 import streamlit as st
 from components.data_loader import (
     load_apps, filter_by_category, load_favorites, get_apps_by_ids, get_top_rated_app,
-    get_before_land_tips, check_password, find_user_by_username, create_user, verify_user,
+    get_before_land_steps, check_password, find_user_by_username, create_user, verify_user,
     load_essential_apps,
 )
 from components.app_card import render_app_card
@@ -205,21 +205,66 @@ with col_title:
 
 st.divider()
 
-# ── 빠른 팁 (접이식) ──────────────────────────────────────────
+# ── Before You Land 단계 안내 (접이식) ────────────────────────
 with st.expander("⚡ Before You Land in Korea", expanded=False):
-    default_tips = [
-        "📶 Get a SIM or pocket Wi-Fi at Incheon Airport — essential for all apps below.",
-        "💳 Load a **T-money card** for seamless subway & bus travel across the country.",
-        "📥 Download **Papago** and **Naver Maps** offline before leaving your hotel.",
-        "🚕 Install **Kakao T** before your first night — finding taxis gets much easier.",
+    default_steps = [
+        {
+            "title": "Check your entry requirements",
+            "content": "Confirm your passport validity and whether you need a visa or K-ETA before you travel.",
+        },
+        {
+            "title": "Complete required entry forms",
+            "content": "Check whether you need an e-Arrival Card or Q-CODE and submit it within the official time window.",
+        },
+        {
+            "title": "Save your stay information",
+            "content": "Keep your accommodation name, Korean address, phone number, and booking confirmation available offline.",
+        },
+        {
+            "title": "Do a final airport check",
+            "content": "Save your documents and QR codes, review customs and baggage rules, and confirm your terminal and boarding time.",
+        },
     ]
 
-    tips = get_before_land_tips()
-    if not tips:
-        tips = default_tips
+    steps = get_before_land_steps() or default_steps
+    step_index_key = "before_land_step_index"
+    current_index = min(
+        max(int(st.session_state.get(step_index_key, 0)), 0),
+        len(steps) - 1,
+    )
+    st.session_state[step_index_key] = current_index
 
-    for tip in tips:
-        st.markdown(tip)
+    st.caption(f"Step {current_index + 1} of {len(steps)}")
+    st.progress((current_index + 1) / len(steps))
+
+    previous_col, step_col, next_col = st.columns([1, 8, 1])
+    with previous_col:
+        if st.button(
+            "←",
+            key="before_land_previous",
+            disabled=len(steps) <= 1,
+            help="Previous step",
+            use_container_width=True,
+        ):
+            st.session_state[step_index_key] = (current_index - 1) % len(steps)
+            st.rerun()
+
+    with step_col:
+        current_step = steps[current_index]
+        with st.container(border=True):
+            st.markdown(f"### {current_step['title']}")
+            st.markdown(current_step["content"])
+
+    with next_col:
+        if st.button(
+            "→",
+            key="before_land_next",
+            disabled=len(steps) <= 1,
+            help="Next step",
+            use_container_width=True,
+        ):
+            st.session_state[step_index_key] = (current_index + 1) % len(steps)
+            st.rerun()
 
 st.divider()
 
