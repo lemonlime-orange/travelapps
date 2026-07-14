@@ -660,3 +660,20 @@
   - `sidebar.cpython-314.pyc`
 - 비고:
   - 소규모 수정사항들 수정 및 보완
+
+  ---
+
+## 1.6.06
+- 날짜: 2026-07-14
+- 변경자: codex (lemonlime-orange)
+- 제목: Situation Helper Error Fix
+- 요약: Situation Helper Error Fix
+- 커밋 제목: Situation Helper Error Fix
+- 변경 내용:
+  - Situation Helper에서 관련 앱이 2개 이상일때, 앱이 표시되지 않고 ValueError가 뜨던 현상 수정
+  - 기존 코드가 Supabase와 맞지 않게 쉼표(,)로만 분리해, 파이프를 구분자로 인식하지 못하여 발생한 현상
+- 관련 파일: 
+  - `situation_helper.py`
+  - `situation_helper.cpython-314.pyc`
+- 비고:
+  - 수정 후 정상적으로 추천 앱이 표시

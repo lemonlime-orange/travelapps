@@ -3,9 +3,30 @@ situation_helper.py
 상황 도우미 UI 렌더러 — 카테고리 선택 후 상황 표시
 """
 
+import re
+
 import streamlit as st
 import pandas as pd
 from components.data_loader import load_situations_by_category, get_situation_categories, load_apps, get_apps_by_ids
+
+
+def parse_app_ids(value):
+    """Return valid app IDs from comma- or pipe-separated situation data."""
+    if pd.isna(value) or not str(value).strip():
+        return []
+
+    app_ids = []
+    for token in re.split(r"[|,]", str(value)):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            app_id = int(token)
+        except ValueError:
+            continue
+        if app_id not in app_ids:
+            app_ids.append(app_id)
+    return app_ids
 
 
 def render_situation_helper():
@@ -46,8 +67,8 @@ def render_situation_helper():
                     st.markdown(f"_{row['description']}_")
                     
                     # 관련 앱 표시
-                    if pd.notna(row['app_ids']) and str(row['app_ids']).strip():
-                        app_ids = [int(x.strip()) for x in str(row['app_ids']).split(",") if x.strip()]
+                    app_ids = parse_app_ids(row['app_ids'])
+                    if app_ids:
                         df_apps = load_apps()
                         related_apps = get_apps_by_ids(df_apps, app_ids)
                         
