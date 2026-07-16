@@ -677,3 +677,21 @@
   - `situation_helper.cpython-314.pyc`
 - 비고:
   - 수정 후 정상적으로 추천 앱이 표시
+
+  ---
+
+## 1.6.07
+- 날짜: 2026-07-16
+- 변경자: codex (lemonlime-orange)
+- 제목: introduction_to_travel_apps.html Added
+- 요약: App Introduction .html file added+ Folder format changed
+- 커밋 제목: introduction_to_travel_apps.html Added
+- 변경 내용:
+  - introduction_to_travel_apps.html 파일 새로 추가.
+  - UPDATES.md와 함께 docs/ 폴더로 이동
+- 관련 파일: 
+  - `introduction_to_travel_apps.html`
+  - `UPDATES.md`
+  - `docs/`
+- 비고:
+  - README.md는 중요성을 고려해 docs/ 폴더로 이동 안함.
